@@ -110,22 +110,31 @@ export function MyLocks() {
   }
 
   const handleBulkExtend = useCallback(
-    async (newDate: string) => {
+    async (newDate: string, onItemSettled: (id: string, outcome: { status: "success" | "error"; error?: string }) => void) => {
       const newUnlockSecs = Math.floor(new Date(newDate).getTime() / 1000)
       let succeeded = 0
       let failed = 0
       for (const lock of selectedLocks) {
-        if (Math.floor(lock.unlockAt / 1000) >= newUnlockSecs) continue
+        if (Math.floor(lock.unlockAt / 1000) >= newUnlockSecs) {
+          onItemSettled(lock.id, { status: "success" })
+          continue
+        }
         try {
           if (lock.kind === "lp") {
             await extendLpLock(lock.id, newUnlockSecs, address!, signTransaction)
           } else {
             await extendLock(lock.id, newUnlockSecs, address!, signTransaction)
           }
+<<<<<<< HEAD
           succeeded += 1
         } catch (err) {
           failed += 1
           notify.error(err)
+=======
+          onItemSettled(lock.id, { status: "success" })
+        } catch (err) {
+          onItemSettled(lock.id, { status: "error", error: err instanceof Error ? err.message : "Extend failed" })
+>>>>>>> f4cf28471bd723621b7d4bc00d3887f476a84a1e
         }
       }
       if (succeeded + failed > 0) notify.bulkCompleted("extension", succeeded, failed)
@@ -136,9 +145,13 @@ export function MyLocks() {
   )
 
   const handleBulkTransfer = useCallback(
+<<<<<<< HEAD
     async (newBeneficiary: string) => {
       let succeeded = 0
       let failed = 0
+=======
+    async (newBeneficiary: string, onItemSettled: (id: string, outcome: { status: "success" | "error"; error?: string }) => void) => {
+>>>>>>> f4cf28471bd723621b7d4bc00d3887f476a84a1e
       for (const lock of selectedLocks) {
         try {
           if (lock.kind === "lp") {
@@ -146,10 +159,16 @@ export function MyLocks() {
           } else {
             await transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction)
           }
+<<<<<<< HEAD
           succeeded += 1
         } catch (err) {
           failed += 1
           notify.error(err)
+=======
+          onItemSettled(lock.id, { status: "success" })
+        } catch (err) {
+          onItemSettled(lock.id, { status: "error", error: err instanceof Error ? err.message : "Transfer failed" })
+>>>>>>> f4cf28471bd723621b7d4bc00d3887f476a84a1e
         }
       }
       if (succeeded + failed > 0) notify.bulkCompleted("transfer", succeeded, failed)
