@@ -40,7 +40,7 @@ import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { NotificationSettings } from "@/components/locks/NotificationSettings"
 import { useVerifiedToken } from "@/hooks/useVerifiedToken"
-import { formatAmount, formatUsd, formatDateTime, shortAddress } from "@/lib/utils"
+import { formatAmount, formatUsd, formatDateTime, shortAddress, notify } from "@/lib/utils"
 import type { Lock } from "@/types/lock"
 
 export function LockDetail() {
@@ -155,6 +155,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
   function reportTxFailure(err: unknown) {
     const structured = sanitizeError(err)
     setTxError(structured)
+    notify.error(err)
     announce(`${t(structured.title)}. ${t(structured.message)}`, "assertive")
   }
 
@@ -168,6 +169,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
         : withdrawLock(lock.id, address!, signTransaction, setTxPhase))
       addTransaction(txHash, "withdraw", { lockId: lock.id, amount: String(lock.amount) })
       trackEvent("lock_withdraw", { kind: lock.kind })
+      notify.withdrawalCompleted()
       announce(t("lockDetail.withdrawSuccess"))
       onChange()
     } catch (err) {
@@ -191,6 +193,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
         : extendLock(lock.id, ts, address!, signTransaction, setTxPhase))
       addTransaction(txHash, "extend", { lockId: lock.id, amount: String(lock.amount) })
       trackEvent("lock_extend", { kind: lock.kind })
+      notify.extensionConfirmed()
       announce(t("lockDetail.extendSuccess"))
       setExtendOpen(false)
       onChange()
@@ -212,6 +215,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
         ? transferLpBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction, setTxPhase)
         : transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction, setTxPhase))
       trackEvent("lock_transfer_beneficiary", { kind: lock.kind })
+      notify.transferConfirmed()
       announce(t("lockDetail.transferSuccess"))
       setTransferOpen(false)
       setNewBeneficiary("")

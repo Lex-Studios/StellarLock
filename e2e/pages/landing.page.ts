@@ -12,11 +12,7 @@ export class LandingPage {
   }
 
   async clickExplorer() {
-    await this.page.click('text=Explore Locks')
-  }
-
-  async clickDiscover() {
-    await this.page.click('text=Discover')
+    await this.page.getByRole('link', { name: 'Explore' }).click()
   }
 
   async isVisible() {

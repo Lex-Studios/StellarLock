@@ -7,7 +7,7 @@ import type { Dex } from "@/types/lock"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
-import { cn, formatDate, isValidStellarAddress } from "@/lib/utils"
+import { cn, formatDate, isValidStellarAddress, notify } from "@/lib/utils"
 import { sanitizeError } from "@/lib/error-sanitizer"
 import type { StructuredError } from "@/lib/errors"
 import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
@@ -169,6 +169,7 @@ export function CreateLpLockForm() {
       )
       addTransaction(txHash, "create_lock", { lockId: id, amount: String(amount) })
       trackEvent("lock_create_lp", { dex })
+      notify.lockCreated()
       void navigate(`/app/lock/${id}`)
     } catch (err: unknown) {
       log.error("[createLpLock error]", err)

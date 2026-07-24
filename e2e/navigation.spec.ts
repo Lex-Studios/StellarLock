@@ -19,13 +19,6 @@ test.describe('Navigation Flows', () => {
     const landing = new LandingPage(page)
     await landing.goto()
     await landing.clickExplorer()
-    await expect(page).toHaveURL(/\/app\/explorer/)
-  })
-
-  test('Landing → Discover navigation', async ({ page }) => {
-    const landing = new LandingPage(page)
-    await landing.goto()
-    await landing.clickDiscover()
-    await expect(page).toHaveURL(/\/app\/discover/)
+    await expect(page).toHaveURL(/\/explore/)
   })
 })

@@ -12,7 +12,7 @@ import { createTokenLock } from "@/lib/token-locker"
 import { createSplitLock, type SplitBeneficiary } from "@/lib/split-lock"
 import { trackEvent } from "@/lib/analytics"
 import { addTransaction } from "@/lib/transaction-history"
-import { cn, formatDate, isValidStellarAddress } from "@/lib/utils"
+import { cn, formatDate, isValidStellarAddress, notify } from "@/lib/utils"
 import { sanitizeError } from "@/lib/error-sanitizer"
 import type { StructuredError } from "@/lib/errors"
 import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
@@ -232,6 +232,7 @@ export function CreateTokenLockForm() {
           signTransaction,
         )
         trackEvent("lock_create_split", { count: splitBeneficiaries.length, vesting })
+        notify.lockCreated()
         localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
         setCooldownRemaining(COOLDOWN_SECONDS)
         void navigate("/app/locks")
@@ -255,6 +256,7 @@ export function CreateTokenLockForm() {
         )
         addTransaction(txHash, "create_lock", { lockId: id, amount: String(amount) })
         trackEvent("lock_create_token", { vesting })
+        notify.lockCreated()
         localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
         setCooldownRemaining(COOLDOWN_SECONDS)
         void navigate("/app/lock-created", {
