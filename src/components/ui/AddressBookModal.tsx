@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react"
+import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { BookUser, Plus, Pencil, Trash2, Check, X, Download, Upload, Search } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { Input, Label } from "@/components/ui/Input"
@@ -25,19 +26,9 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
   const [importError, setImportError] = useState<string | null>(null)
   const importRef = useRef<HTMLInputElement>(null)
   const firstFocusRef = useRef<HTMLButtonElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    firstFocusRef.current?.focus()
-  }, [])
-
-  // Close on Escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-    }
-    window.addEventListener("keydown", handler)
-    return () => window.removeEventListener("keydown", handler)
-  }, [onClose])
+  useModalFocusTrap({ active: true, containerRef, initialFocusRef: firstFocusRef, onEscape: onClose })
 
   const filtered = book.entries.filter(
     (e) =>
@@ -109,7 +100,7 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="flex w-full max-w-lg flex-col rounded-xl bg-card shadow-2xl">
+      <div ref={containerRef} className="flex w-full max-w-lg flex-col rounded-xl bg-card shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-2">

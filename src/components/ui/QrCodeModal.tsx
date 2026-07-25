@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from "react"
+import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { QRCodeCanvas } from "qrcode.react"
 import { X, Download, Copy, Check } from "lucide-react"
 import { useState } from "react"
@@ -17,16 +18,12 @@ const QR_SIZE = 256
 
 export function QrCodeModal({ url, title = "Share Lock", onClose }: QrCodeModalProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [copied, setCopied] = useState(false)
 
-  // Close on Escape key
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-    }
-    window.addEventListener("keydown", handler)
-    return () => window.removeEventListener("keydown", handler)
-  }, [onClose])
+  useModalFocusTrap({ active: true, containerRef, onEscape: onClose })
+
+
 
   /** Download the rendered QR code canvas as a PNG. */
   const handleDownload = useCallback(() => {
@@ -81,7 +78,7 @@ export function QrCodeModal({ url, title = "Share Lock", onClose }: QrCodeModalP
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="flex w-full max-w-sm flex-col rounded-xl bg-card shadow-2xl">
+      <div ref={containerRef} className="flex w-full max-w-sm flex-col rounded-xl bg-card shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 className="text-lg font-semibold">{title}</h2>
