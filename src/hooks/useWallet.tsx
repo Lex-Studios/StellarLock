@@ -8,6 +8,7 @@ import { trackEvent } from "@/lib/analytics"
 import { NETWORK } from "@/lib/stellar"
 import { notify } from "../lib/utils"
 import { createLogger } from "@/lib/logger"
+import { useSessionRecovery } from "@/hooks/useSessionRecovery"
 
 const log = createLogger("useWallet")
 
@@ -233,7 +234,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [address, connecting, connectState, connectError, connectHelp, disconnected, networkChanged, connect, disconnect, dismissDisconnectAlert, dismissNetworkAlert, signTransaction],
   )
 
-  return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
+  return (
+    <WalletContext.Provider value={value}>
+      <SessionRecoveryBridge />
+      {children}
+    </WalletContext.Provider>
+  )
+}
+
+/** Inner bridge: consumes WalletContext so useSessionRecovery can call useWallet(). */
+function SessionRecoveryBridge() {
+  useSessionRecovery()
+  return null
 }
 
 function getFriendlyError(message: string): string {
