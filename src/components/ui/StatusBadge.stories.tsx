@@ -5,22 +5,34 @@ const meta = {
   title: "UI/StatusBadge",
   component: StatusBadge,
   tags: ["autodocs"],
+  argTypes: {
+    status: {
+      control: "select",
+      options: ["locked", "unlockable", "withdrawn"],
+    },
+  },
 } satisfies Meta<typeof StatusBadge>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Locked: Story = { args: { status: "locked" } }
-export const Unlockable: Story = { args: { status: "unlockable" } }
-export const Withdrawn: Story = { args: { status: "withdrawn" } }
+/** Tokens are still within the lock period. */
+export const Locked: Story = {
+  args: {
+    status: "locked",
+  },
+}
 
-export const AllStatuses: Story = {
-  args: { status: "locked" },
-  render: () => (
-    <div className="flex gap-2">
-      <StatusBadge status="locked" />
-      <StatusBadge status="unlockable" />
-      <StatusBadge status="withdrawn" />
-    </div>
-  ),
+/** Lock period has ended — tokens can be withdrawn. */
+export const Unlockable: Story = {
+  args: {
+    status: "unlockable",
+  },
+}
+
+/** Tokens have already been withdrawn from the lock. */
+export const Withdrawn: Story = {
+  args: {
+    status: "withdrawn",
+  },
 }
