@@ -42,6 +42,7 @@ import { NotificationSettings } from "@/components/locks/NotificationSettings"
 import { useVerifiedToken } from "@/hooks/useVerifiedToken"
 import { formatAmount, formatUsd, formatDateTime, shortAddress } from "@/lib/utils"
 import type { Lock } from "@/types/lock"
+import { createLogger } from "@/lib/logger"
 
 export function LockDetail() {
   const { t } = useTranslation()
@@ -98,6 +99,8 @@ export function LockDetail() {
     </>
   )
 }
+
+const log = createLogger("LockDetail")
 
 function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }) {
   const { t } = useTranslation()
@@ -171,6 +174,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
       announce(t("lockDetail.withdrawSuccess"))
       onChange()
     } catch (err) {
+      log.error("[handleWithdraw error]", err)
       reportTxFailure(err)
     } finally {
       setBusy(null)
@@ -195,6 +199,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
       setExtendOpen(false)
       onChange()
     } catch (err) {
+      log.error("[handleExtend error]", err)
       reportTxFailure(err)
     } finally {
       setBusy(null)
@@ -217,6 +222,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
       setNewBeneficiary("")
       onChange()
     } catch (err) {
+      log.error("[handleTransfer error]", err)
       reportTxFailure(err)
     } finally {
       setBusy(null)
