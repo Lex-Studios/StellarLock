@@ -5,8 +5,8 @@ interface RpcResponse {
   data: unknown
 }
 
-// Mock RPC endpoint configuration
-const RPC_ENDPOINT = "https://soroban-testnet.stellar.org"
+// RPC endpoint: prefer RPC_URL env var, fall back to testnet
+const RPC_ENDPOINT = process.env.RPC_URL ?? "https://soroban-testnet.stellar.org"
 
 // Performance budgets from issue #107
 const PERFORMANCE_BUDGETS = {
@@ -15,23 +15,30 @@ const PERFORMANCE_BUDGETS = {
   errorRate: 5, // %
 }
 
-async function mockRpcCall(endpoint: string, method: string, delay: number = 50): Promise<RpcResponse> {
-  // Simulate RPC latency
-  await new Promise((resolve) => setTimeout(resolve, delay))
+async function rpcCall(endpoint: string, method: string, params: unknown[] = []): Promise<RpcResponse> {
+  const body = JSON.stringify({
+    jsonrpc: "2.0",
+    id: 1,
+    method,
+    params,
+  })
 
-  // Add some realistic variance
-  const variance = Math.random() * 20 - 10
-  const actualDelay = Math.max(delay + variance, 10)
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+  })
 
-  // 95% success rate by default
-  if (Math.random() < 0.05) {
-    throw new Error(`RPC error: ${method} failed`)
+  if (!response.ok) {
+    throw new Error(`RPC HTTP error ${response.status}: ${method}`)
   }
 
-  return {
-    status: 200,
-    data: { result: "success", endpoint, method, latency: actualDelay },
+  const data = (await response.json()) as { error?: { message: string } }
+  if (data.error) {
+    throw new Error(`RPC error: ${data.error.message}`)
   }
+
+  return { status: response.status, data }
 }
 
 // Scenario 1: Concurrent reads (get_lock calls)
@@ -40,7 +47,7 @@ const concurrentReadsScenario: LoadTestScenario = {
   concurrency: 50,
   duration: 30000, // 30 seconds
   operation: async () => {
-    await mockRpcCall(RPC_ENDPOINT, "get_lock", 50)
+    await rpcCall(RPC_ENDPOINT, "getLedgerEntries", [])
   },
   maxErrorRate: 5,
   maxP95Latency: PERFORMANCE_BUDGETS.readP95,
@@ -52,7 +59,7 @@ const concurrentWritesScenario: LoadTestScenario = {
   concurrency: 10,
   duration: 30000, // 30 seconds
   operation: async () => {
-    await mockRpcCall(RPC_ENDPOINT, "create_lock", 500)
+    await rpcCall(RPC_ENDPOINT, "sendTransaction", [])
   },
   maxErrorRate: 5,
   maxP95Latency: PERFORMANCE_BUDGETS.writeP95,
@@ -64,7 +71,7 @@ const explorerSearchScenario: LoadTestScenario = {
   concurrency: 20,
   duration: 30000, // 30 seconds
   operation: async () => {
-    await mockRpcCall(RPC_ENDPOINT, "get_locks_by_token", 100)
+    await rpcCall(RPC_ENDPOINT, "getLedgerEntries", [])
   },
   maxErrorRate: 5,
   maxP95Latency: PERFORMANCE_BUDGETS.readP95,
@@ -78,9 +85,9 @@ const mixedWorkloadScenario: LoadTestScenario = {
   operation: async () => {
     const isRead = Math.random() < 0.8
     if (isRead) {
-      await mockRpcCall(RPC_ENDPOINT, "get_lock", 50)
+      await rpcCall(RPC_ENDPOINT, "getLedgerEntries", [])
     } else {
-      await mockRpcCall(RPC_ENDPOINT, "create_lock", 500)
+      await rpcCall(RPC_ENDPOINT, "sendTransaction", [])
     }
   },
   maxErrorRate: 5,
@@ -93,7 +100,7 @@ const sustainedLoadScenario: LoadTestScenario = {
   concurrency: 15,
   duration: 300000, // 5 minutes
   operation: async () => {
-    await mockRpcCall(RPC_ENDPOINT, "get_lock", 50)
+    await rpcCall(RPC_ENDPOINT, "getLedgerEntries", [])
   },
   maxErrorRate: 5,
   maxP95Latency: PERFORMANCE_BUDGETS.readP95,
@@ -105,7 +112,7 @@ const burstLoadScenario: LoadTestScenario = {
   concurrency: 100,
   duration: 10000, // 10 seconds
   operation: async () => {
-    await mockRpcCall(RPC_ENDPOINT, "get_lock", 50)
+    await rpcCall(RPC_ENDPOINT, "getLedgerEntries", [])
   },
   maxErrorRate: 5,
   maxP95Latency: 3000, // Burst can have some degradation
