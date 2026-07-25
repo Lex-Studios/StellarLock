@@ -24,6 +24,7 @@ import { CostEstimate } from "@/components/locks/CostEstimate"
 import { AddressBookModal } from "@/components/ui/AddressBookModal"
 import { BookUser } from "lucide-react"
 import { createLogger } from "@/lib/logger"
+import { useDraftAutoSave } from "@/hooks/useDraftStorage"
 
 const log = createLogger("CreateLpLockForm")
 
@@ -52,6 +53,14 @@ export function CreateLpLockForm() {
   const [logoUrl, setLogoUrl] = useState("")
   const [beneficiaryOverride, setBeneficiaryOverride] = useState("")
   const [addressBookOpen, setAddressBookOpen] = useState(false)
+
+  useDraftAutoSave("lp", {
+    poolShareAddress,
+    tokenA,
+    tokenB,
+    amount,
+    unlockDate,
+  })
 
   const dexes: { value: Dex; label: string; desc: string }[] = [
     { value: "aquarius", label: t("lpForm.aquarius"), desc: t("lpForm.aquariusDesc") },

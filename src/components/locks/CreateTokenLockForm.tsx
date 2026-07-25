@@ -23,6 +23,7 @@ import { CostEstimate } from "@/components/locks/CostEstimate"
 import { MultiBeneficiaryFields } from "@/components/locks/MultiBeneficiaryFields"
 import { AddressBookModal } from "@/components/ui/AddressBookModal"
 import { createLogger } from "@/lib/logger"
+import { useDraftAutoSave } from "@/hooks/useDraftStorage"
 
 const log = createLogger("CreateTokenLockForm")
 
@@ -69,6 +70,13 @@ export function CreateTokenLockForm() {
 
   const COOLDOWN_SECONDS = 60
   const COOLDOWN_KEY = "stellarlock:last_lock_created_at"
+
+  useDraftAutoSave("token", {
+    tokenAddress,
+    amount,
+    beneficiary,
+    unlockDate,
+  })
 
   useEffect(() => {
     const stored = localStorage.getItem(COOLDOWN_KEY)
