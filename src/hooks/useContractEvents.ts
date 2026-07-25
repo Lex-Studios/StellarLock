@@ -32,7 +32,7 @@ interface GetEventsResponse {
 const EVENT_POLL_INTERVAL = 3000
 
 export function useContractEvents(options: EventPollingOptions = {}) {
-  const { onEvent, pollInterval = EVENT_POLL_INTERVAL } = options
+  const { contractAddress, onEvent, pollInterval = EVENT_POLL_INTERVAL } = options
   const [events, setEvents] = useState<ContractEvent[]>([])
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastSequenceRef = useRef<number>(0)
@@ -53,7 +53,13 @@ export function useContractEvents(options: EventPollingOptions = {}) {
             filters: [
               {
                 type: "contract",
-                contractIds: [],
+                contractIds: (() => {
+                  const addr =
+                    contractAddress ??
+                    (import.meta.env.VITE_TOKEN_LOCKER_CONTRACT as string | undefined) ??
+                    (import.meta.env.VITE_LP_LOCKER_CONTRACT as string | undefined)
+                  return addr ? [addr] : []
+                })(),
               },
             ],
           },
