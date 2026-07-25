@@ -13,13 +13,22 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="StellarLock" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-      crossorigin="anonymous"
-    />
+    <!--
+      Geist and Geist Mono fonts are loaded from Google Fonts via a
+      dynamically-generated stylesheet. Because Google Fonts CSS is
+      generated per user-agent, a static Subresource Integrity (SRI)
+      integrity hash cannot be computed for it, so the link is omitted
+      here. The CSS custom properties in src/index.css define Geist as
+      the preferred family with ui-sans-serif / system-ui fallbacks, so
+      the app remains fully functional on system fonts without the
+      external request.
+
+      To restore the Geist brand typeface with full SRI coverage, install
+      the self-hosted npm package and import in main.tsx:
+        npm install geist
+        import geist/dist/GeistVF.woff2
+        import geist/dist/GeistMonoVF.woff2
+    -->
     <title>StellarLock — Token & LP Locks on Stellar</title>
     <meta
       name="description"
