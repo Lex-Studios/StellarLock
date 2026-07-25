@@ -1,4 +1,5 @@
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
+import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { X } from "lucide-react"
 
 interface Props {
@@ -19,14 +20,9 @@ const SHORTCUTS = [
 ]
 
 export function KeyboardShortcutsModal({ open, onClose }: Props) {
-  useEffect(() => {
-    if (!open) return
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose()
-    }
-    window.addEventListener("keydown", handleKey)
-    return () => window.removeEventListener("keydown", handleKey)
-  }, [open, onClose])
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useModalFocusTrap({ active: open, containerRef, onEscape: onClose })
 
   if (!open) return null
 
@@ -40,7 +36,7 @@ export function KeyboardShortcutsModal({ open, onClose }: Props) {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-xl">
+      <div ref={containerRef} className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Keyboard shortcuts</h2>
           <button
