@@ -1,8 +1,29 @@
 {
   "name": "stellarlock",
   "version": "0.1.0",
+
+  "description": "StellarLock — secure liquidity locking for Stellar/Soroban",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/StellarLock/StellarLock.git"
+  },
+  "homepage": "https://github.com/StellarLock/StellarLock",
+  "keywords": [
+    "stellar",
+    "soroban",
+    "liquidity",
+    "lock",
+    "token",
+    "defi"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+
   "private": true,
   "type": "module",
+
   "scripts": {
     "dev": "vite --host",
     "dev:testnet": "cp .env.testnet .env && vite --host",
@@ -29,6 +50,7 @@
     "changelog": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -r 0",
     "changelog:release": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s"
   },
+
   "pnpm": {
     "overrides": {
       "protobufjs": "^7.5.6",
@@ -36,6 +58,7 @@
       "vitest": "^3.2.6"
     }
   },
+
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^1.7.6",
     "@stellar/freighter-api": "^6.0.1",
@@ -56,6 +79,7 @@
     "tailwind-merge": "^3.3.1",
     "web-vitals": "^4.0.1"
   },
+
   "devDependencies": {
     "@commitlint/cli": "^19",
     "@commitlint/config-conventional": "^19",
@@ -75,32 +99,6 @@
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@vitejs/plugin-react": "^6.0.2",
-    "@vitest/ui": "^1",
-    "conventional-changelog-cli": "^5",
-    "eslint": "^9",
-    "eslint-config-prettier": "^10",
-    "eslint-plugin-react-hooks": "^5",
-    "eslint-plugin-react-refresh": "^0.4",
-    "husky": "^9",
-    "jsdom": "^24",
-    "lint-staged": "^15",
-    "prettier": "^3",
-    "storybook": "^8.0.0",
-    "tailwindcss": "^4",
-    "typescript": "5.7.3",
-    "typescript-eslint": "^8",
-    "vite": "^8",
-    "vitest": "^1",
-    "vitest-axe": "^0.1.0"
-  },
-  "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,css,html}": [
-      "prettier --write"
-    ]
+    "@vitejs/plugin-react": "^6.0.2"
   }
 }
