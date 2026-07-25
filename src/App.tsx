@@ -41,7 +41,6 @@ export function App() {
           style: { background: "#363636", color: "#fff" },
         }}
       />
-      <OnboardingTour />
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Landing />} />
@@ -69,8 +68,8 @@ export function App() {
             <Route path="/app/locks" element={<MyLocks />} />
             <Route path="/app/lock/token/:id" element={<LockDetail />} />
             <Route path="/app/lock/lp/:id" element={<LockDetail />} />
-            {/* Legacy deep-link: redirect bare id to token detail */}
             <Route path="/app/lock/:id" element={<LockDetail />} />
+            <Route path="/app/settings" element={<Settings />} />
             <Route path="/app/history" element={<History />} />
             <Route path="/app/analytics" element={<Analytics />} />
             <Route path="/health" element={<Health />} />

@@ -84,6 +84,13 @@ export const notify = {
   lockCreated: (): string => toast.success("Lock created successfully"),
   withdrawalCompleted: (): string => toast.success("Withdrawal completed"),
   extensionConfirmed: (): string => toast.success("Extension confirmed"),
+  transferConfirmed: (): string => toast.success("Beneficiary transfer confirmed"),
+  bulkCompleted: (action: "extension" | "transfer", succeeded: number, failed: number): string => {
+    const label = action === "extension" ? "extension" : "transfer"
+    if (failed === 0) return toast.success(`${succeeded} ${label}${succeeded === 1 ? "" : "s"} completed`)
+    if (succeeded === 0) return toast.error(`No ${label}s completed`)
+    return toast.error(`${succeeded} ${label}${succeeded === 1 ? "" : "s"} completed, ${failed} failed`)
+  },
 
   error: (err: unknown): string => {
     const error = err as Notify

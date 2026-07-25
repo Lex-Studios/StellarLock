@@ -83,8 +83,8 @@ jobs:
       - name: Build Vite App
         run: pnpm build
 
-  visual-regression:
-    name: Visual Regression
+  e2e:
+    name: End-to-End and Visual Regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -120,6 +120,14 @@ jobs:
           path: playwright-report/
           retention-days: 14
 
+      - name: Upload Playwright test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results/
+          retention-days: 14
+
   contracts:
     name: Smart Contract Checks
     runs-on: ubuntu-latest
@@ -146,3 +154,12 @@ jobs:
 
       - name: Build Contracts
         run: stellar contract build
+
+      - name: Check Rust formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run contract tests
+        run: cargo test --workspace --all-targets
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
