@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { createLogger } from "@/lib/logger"
 
 const log = createLogger("useDraftStorage")
@@ -42,11 +43,13 @@ export function useDraftAutoSave(
   formData: Record<string, string>,
   enabled: boolean = true,
 ) {
-  if (!enabled) return
+  useEffect(() => {
+    if (!enabled) return
 
-  const timeoutId = setTimeout(() => {
-    saveDraft(type, formData)
-  }, 500)
+    const timeoutId = setTimeout(() => {
+      saveDraft(type, formData)
+    }, 500)
 
-  return () => clearTimeout(timeoutId)
+    return () => clearTimeout(timeoutId)
+  }, [type, formData, enabled])
 }
