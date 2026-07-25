@@ -35,6 +35,7 @@ export function Navbar() {
     { to: "/app/create", label: t("nav.createLock"), prefetchFn: prefetch.createLock },
     { to: "/app/locks", label: t("nav.myLocks"), prefetchFn: prefetch.myLocks },
     { to: "/app/history", label: t("nav.history"), prefetchFn: prefetch.history },
+    { to: "/app/analytics", label: t("nav.analytics"), prefetchFn: prefetch.analytics },
   ]
 
   return (

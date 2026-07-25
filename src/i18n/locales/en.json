@@ -19,7 +19,8 @@
     "disconnectWallet": "Disconnect wallet",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "history": "History"
+    "history": "History",
+    "analytics": "Analytics"
   },
   "landing": {
     "badge": "Built on Stellar · Soroban smart contracts",
@@ -371,5 +372,16 @@
       "message": "Your wallet is connected to the wrong network.",
       "recovery": "Switch to the correct network in Freighter settings."
     }
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Lock activity and total value locked across StellarLock.",
+    "totalValueLocked": "Total Value Locked",
+    "totalLocks": "Total Locks",
+    "tokensTracked": "Tokens Tracked",
+    "tvlOverTime": "TVL Over Time",
+    "lockVolume": "Lock Creation Volume",
+    "tokenDistribution": "Token Distribution",
+    "noData": "No lock activity to display yet."
   }
 }

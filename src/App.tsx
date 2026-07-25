@@ -18,6 +18,7 @@ const LockCreated = lazy(() => import("./pages/LockCreated").then((m) => ({ defa
 const Explorer = lazy(() => import("./pages/Explorer").then((m) => ({ default: m.Explorer })))
 const Discover = lazy(() => import("./pages/Discover").then((m) => ({ default: m.Discover })))
 const History = lazy(() => import("./pages/History").then((m) => ({ default: m.History })))
+const Analytics = lazy(() => import("./pages/Analytics").then((m) => ({ default: m.Analytics })))
 const Health = lazy(() => import("./pages/Health").then((m) => ({ default: m.HealthPage })))
 const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })))
 
@@ -71,6 +72,7 @@ export function App() {
             {/* Legacy deep-link: redirect bare id to token detail */}
             <Route path="/app/lock/:id" element={<LockDetail />} />
             <Route path="/app/history" element={<History />} />
+            <Route path="/app/analytics" element={<Analytics />} />
             <Route path="/health" element={<Health />} />
             <Route path="/explore" element={<Discover />} />
             <Route path="/explore/:token" element={<Explorer />} />

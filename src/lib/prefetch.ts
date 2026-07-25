@@ -5,4 +5,5 @@ export const prefetch = {
   myLocks: () => import("@/pages/MyLocks"),
   discover: () => import("@/pages/Discover"),
   history: () => import("@/pages/History"),
+  analytics: () => import("@/pages/Analytics"),
 }
