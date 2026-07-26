@@ -148,7 +148,8 @@ jobs:
         with:
           workspaces: ./contracts
 
-      # Replaced manual curl/tar sequence with the official Stellar step
+      # Official Stellar CLI action — version must stay in sync with the
+      # cargo install pin in Dockerfile.contracts (currently stellar-cli@27.0.0).
       - name: Install Stellar CLI
         uses: stellar/stellar-cli@v27.0.0
 
