@@ -8,11 +8,6 @@ interface BalanceCacheEntry {
 
 type CacheKey = string
 
-// Placeholder removed: this file is not completed yet.
-// The caching hook will be implemented once we can reliably import the balance read helper.
-
-
-
 // In-memory cache shared across hook instances.
 const cache = new Map<CacheKey, BalanceCacheEntry>()
 
