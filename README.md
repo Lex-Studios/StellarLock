@@ -48,7 +48,7 @@ Token and LP liquidity lock platform built on [Stellar Soroban](https://soroban.
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org) 18+
+- [Node.js](https://nodejs.org) 22 (see `.nvmrc` — managed automatically by `nvm`, `fnm`, etc.)
 - [pnpm](https://pnpm.io) — `npm install -g pnpm`
 - [Freighter](https://www.freighter.app) browser extension set to **Testnet**
 
