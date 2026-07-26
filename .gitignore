@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# npm lockfile — this project uses pnpm; prevent accidental npm install from being committed
+package-lock.json
+
 # Build output
 dist/
 .DS_Store
