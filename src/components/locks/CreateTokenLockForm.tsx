@@ -7,7 +7,8 @@ import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
 import { useWallet } from "@/hooks/useWallet"
-import { useTokenBalance, useTokenAllowance } from "@/hooks/useLocks"
+import { useTokenAllowance } from "@/hooks/useLocks"
+import { useTokenBalanceSWR } from "@/hooks/useTokenBalanceSWR"
 import { createTokenLock } from "@/lib/token-locker"
 import { createSplitLock, type SplitBeneficiary } from "@/lib/split-lock"
 import { trackEvent } from "@/lib/analytics"
@@ -118,7 +119,14 @@ export function CreateTokenLockForm() {
   const trimmedBeneficiary = beneficiary.trim()
   const effectiveBeneficiary = trimmedBeneficiary || address || ""
   const validTokenAddress = isValidStellarContractAddress(trimmedTokenAddress) ? trimmedTokenAddress : undefined
-  const { data: balance, loading: balanceLoading } = useTokenBalance(validTokenAddress, address ?? null)
+  const {
+    balance: balanceStroops,
+    isLoading: balanceLoading,
+    isRevalidating: balanceRevalidating,
+  } = useTokenBalanceSWR(validTokenAddress, address ?? null)
+  // Convert stroops (bigint) to a human-readable float for display/validation.
+  // While revalidating we keep the stale value visible — that's the SWR benefit.
+  const balance = balanceStroops !== null ? Number(balanceStroops) / 1e7 : null
   const { data: allowance, loading: allowanceLoading } = useTokenAllowance(
     validTokenAddress,
     address ?? null,
@@ -338,6 +346,7 @@ export function CreateTokenLockForm() {
                 ) : balance != null ? (
                   <>
                     {t("tokenForm.balance")}: {balance.toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                    {balanceRevalidating && <Loader2 className="h-3 w-3 animate-spin ml-1" />}
                   </>
                 ) : null}
               </span>
@@ -606,8 +615,11 @@ export function CreateTokenLockForm() {
 
         <Button type="submit" size="lg" loading={submitting} disabled={!valid || cooldownRemaining > 0}>
           <Lock className="h-4 w-4" />
-          {multiMode ? t("splitLock.submit") : t("tokenForm.submit")}
-          {cooldownRemaining > 0 ? `Wait ${cooldownRemaining}s…` : t("tokenForm.submit")}
+          {cooldownRemaining > 0
+            ? `Wait ${cooldownRemaining}s…`
+            : multiMode
+            ? t("splitLock.submit")
+            : t("tokenForm.submit")}
         </Button>
       </form>
 
