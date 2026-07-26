@@ -8,8 +8,9 @@ import { StatCard } from "@/components/ui/StatCard"
 import { Badge } from "@/components/ui/Badge"
 import { StatusBadge } from "@/components/ui/StatusBadge"
 import { TokenAvatar } from "@/components/ui/TokenAvatar"
+import { SkeletonStatCard, SkeletonLockCard } from "@/components/ui/Skeleton"
 import { RecentActivity } from "@/components/discover/RecentActivity"
-import { MOCK_LOCKS } from "@/lib/mock-data"
+import { useDiscoverStats } from "@/hooks/useLocks"
 import { formatAmount, formatDate, formatUsd } from "@/lib/utils"
 
 export function Discover() {
