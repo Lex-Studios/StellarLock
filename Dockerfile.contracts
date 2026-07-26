@@ -24,9 +24,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Add the wasm32 target required by Soroban
 RUN rustup target add wasm32v1-none
 
-# Install the Stellar CLI (pinned version for reproducibility)
-RUN cargo install --locked stellar-cli@22.7.1 --features opt 2>/dev/null || \
-    cargo install --locked stellar-cli --features opt
+# Install the Stellar CLI (pinned version for reproducibility).
+# ⚠️  Keep this version in sync with the `stellar/stellar-cli` action version
+#     used in .github/workflows/ci.yml (contracts job) — currently v27.0.0.
+RUN cargo install --locked stellar-cli@27.0.0 --features opt
 
 WORKDIR /app
 

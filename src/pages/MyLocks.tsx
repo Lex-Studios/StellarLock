@@ -18,6 +18,7 @@ import { BulkConfirmModal } from "@/components/locks/BulkConfirmModal"
 import { ConnectGate } from "@/components/layout/ConnectGate"
 import { SkeletonLockCard, SkeletonStatCard } from "@/components/ui/Skeleton"
 import { cn, formatUsd, notify } from "@/lib/utils"
+import { formatUsd } from "@/lib/utils"
 import type { Lock, LockStatus } from "@/types/lock"
 
 type Tab = "created" | "received"
@@ -137,8 +138,6 @@ export function MyLocks() {
   const handleBulkExtend = useCallback(
     async (newDate: string, onItemSettled: (id: string, outcome: { status: "success" | "error"; error?: string }) => void) => {
       const newUnlockSecs = Math.floor(new Date(newDate).getTime() / 1000)
-      let succeeded = 0
-      let failed = 0
       for (const lock of selectedLocks) {
         if (Math.floor(lock.unlockAt / 1000) >= newUnlockSecs) {
           onItemSettled(lock.id, { status: "success" })
@@ -158,7 +157,6 @@ export function MyLocks() {
           failed += 1
         }
       }
-      if (succeeded + failed > 0) notify.bulkCompleted("extension", succeeded, failed)
       reload()
       exitSelectMode()
     },
@@ -183,7 +181,6 @@ export function MyLocks() {
           failed += 1
         }
       }
-      if (succeeded + failed > 0) notify.bulkCompleted("transfer", succeeded, failed)
       reload()
       exitSelectMode()
     },

@@ -1,33 +1,75 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { LockProgressBar } from "./LockProgressBar"
 
-const DAY = 86_400_000
+const NOW = Date.now()
+const HOUR = 60 * 60 * 1000
+const DAY = 24 * HOUR
 
 const meta = {
   title: "UI/LockProgressBar",
   component: LockProgressBar,
   tags: ["autodocs"],
+  argTypes: {
+    showLabel: {
+      control: "boolean",
+    },
+  },
 } satisfies Meta<typeof LockProgressBar>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const JustStarted: Story = {
-  args: { createdAt: Date.now() - 1 * DAY, unlockAt: Date.now() + 89 * DAY },
+/** 0% — lock was just created; unlock is still far in the future. */
+export const NotStarted: Story = {
+  args: {
+    createdAt: NOW,
+    unlockAt: NOW + 30 * DAY,
+    showLabel: true,
+  },
 }
 
-export const HalfwayThere: Story = {
-  args: { createdAt: Date.now() - 45 * DAY, unlockAt: Date.now() + 45 * DAY },
+/** ~50% — halfway through the lock period. */
+export const HalfVested: Story = {
+  args: {
+    createdAt: NOW - 15 * DAY,
+    unlockAt: NOW + 15 * DAY,
+    showLabel: true,
+  },
 }
 
-export const NearlyDone: Story = {
-  args: { createdAt: Date.now() - 85 * DAY, unlockAt: Date.now() + 5 * DAY },
+/** ~75% — three-quarters through the lock period. */
+export const MostlyVested: Story = {
+  args: {
+    createdAt: NOW - 22 * DAY,
+    unlockAt: NOW + 8 * DAY,
+    showLabel: true,
+  },
 }
 
-export const ReadyToWithdraw: Story = {
-  args: { createdAt: Date.now() - 90 * DAY, unlockAt: Date.now() - 1 * DAY },
+/** 100% — unlock time has passed; ready to withdraw. */
+export const FullyVested: Story = {
+  args: {
+    createdAt: NOW - 30 * DAY,
+    unlockAt: NOW - DAY,
+    showLabel: true,
+  },
 }
 
-export const WithoutLabel: Story = {
-  args: { createdAt: Date.now() - 45 * DAY, unlockAt: Date.now() + 45 * DAY, showLabel: false },
+/** Label hidden — as used inside LockCard where the label is suppressed. */
+export const NoLabel: Story = {
+  args: {
+    createdAt: NOW - 10 * DAY,
+    unlockAt: NOW + 20 * DAY,
+    showLabel: false,
+  },
+}
+
+/** Custom className — demonstrates width / spacing overrides from a parent. */
+export const CustomClassName: Story = {
+  args: {
+    createdAt: NOW - 5 * DAY,
+    unlockAt: NOW + 25 * DAY,
+    showLabel: true,
+    className: "max-w-xs",
+  },
 }
