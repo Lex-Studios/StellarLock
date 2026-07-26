@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Plus, Wallet, Layers, Search, CheckSquare } from "lucide-react"
+import { Plus, Wallet, Layers, Search, CheckSquare, LayoutGrid, Table2 } from "lucide-react"
 import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { useWallet } from "@/hooks/useWallet"
@@ -11,19 +11,40 @@ import { Tabs } from "@/components/ui/Tabs"
 import { Button } from "@/components/ui/Button"
 import { StatCard } from "@/components/ui/StatCard"
 import { LockCard } from "@/components/locks/LockCard"
+import { LockTable } from "@/components/locks/LockTable"
 import { Pagination } from "@/components/ui/Pagination"
 import { BulkActionsToolbar } from "@/components/locks/BulkActionsToolbar"
 import { BulkConfirmModal } from "@/components/locks/BulkConfirmModal"
 import { ConnectGate } from "@/components/layout/ConnectGate"
 import { SkeletonLockCard, SkeletonStatCard } from "@/components/ui/Skeleton"
+import { cn, formatUsd, notify } from "@/lib/utils"
 import { formatUsd } from "@/lib/utils"
 import type { Lock, LockStatus } from "@/types/lock"
 
 type Tab = "created" | "received"
 type SortKey = "unlockAt" | "amount" | "createdAt"
 type BulkAction = "extend" | "transfer" | null
+type ViewMode = "card" | "table"
 
 const PAGE_SIZE = 20
+const VIEW_MODE_KEY = "stellarlock:locks-view-mode"
+
+function loadViewMode(): ViewMode {
+  try {
+    const stored = localStorage.getItem(VIEW_MODE_KEY)
+    return stored === "table" ? "table" : "card"
+  } catch {
+    return "card"
+  }
+}
+
+function saveViewMode(mode: ViewMode) {
+  try {
+    localStorage.setItem(VIEW_MODE_KEY, mode)
+  } catch {
+    // ignore quota errors
+  }
+}
 
 export function MyLocks() {
   const { t } = useTranslation()
@@ -36,6 +57,7 @@ export function MyLocks() {
   const [statusFilter, setStatusFilter] = useState<LockStatus | "all">("all")
   const [kindFilter, setKindFilter] = useState<"all" | "token" | "lp">("all")
   const [sortKey, setSortKey] = useState<SortKey>("unlockAt")
+  const [viewMode, setViewMode] = useState<ViewMode>(loadViewMode)
 
   // Bulk selection state
   const [selectMode, setSelectMode] = useState(false)
@@ -57,11 +79,15 @@ export function MyLocks() {
   const rawList = tab === "created" ? created : received
   const totalForTab = tab === "created" ? totalCreated : totalReceived
 
-  // Reset to page 1 and exit select mode when switching tabs or filters
   function handleTabChange(v: string) {
     setTab(v as Tab)
     setPage(1)
     exitSelectMode()
+  }
+
+  function handleViewMode(mode: ViewMode) {
+    setViewMode(mode)
+    saveViewMode(mode)
   }
 
   const filteredList = useMemo(() => {
@@ -115,6 +141,7 @@ export function MyLocks() {
       for (const lock of selectedLocks) {
         if (Math.floor(lock.unlockAt / 1000) >= newUnlockSecs) {
           onItemSettled(lock.id, { status: "success" })
+          succeeded += 1
           continue
         }
         try {
@@ -124,8 +151,10 @@ export function MyLocks() {
             await extendLock(lock.id, newUnlockSecs, address!, signTransaction)
           }
           onItemSettled(lock.id, { status: "success" })
+          succeeded += 1
         } catch (err) {
           onItemSettled(lock.id, { status: "error", error: err instanceof Error ? err.message : "Extend failed" })
+          failed += 1
         }
       }
       reload()
@@ -136,6 +165,8 @@ export function MyLocks() {
 
   const handleBulkTransfer = useCallback(
     async (newBeneficiary: string, onItemSettled: (id: string, outcome: { status: "success" | "error"; error?: string }) => void) => {
+      let succeeded = 0
+      let failed = 0
       for (const lock of selectedLocks) {
         try {
           if (lock.kind === "lp") {
@@ -144,8 +175,10 @@ export function MyLocks() {
             await transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction)
           }
           onItemSettled(lock.id, { status: "success" })
+          succeeded += 1
         } catch (err) {
           onItemSettled(lock.id, { status: "error", error: err instanceof Error ? err.message : "Transfer failed" })
+          failed += 1
         }
       }
       reload()
@@ -209,7 +242,7 @@ export function MyLocks() {
           )}
         </div>
 
-        <div className="mt-8">
+        <div className="mt-8 flex flex-wrap items-center gap-3">
           <Tabs
             value={tab}
             onChange={handleTabChange}
@@ -218,6 +251,44 @@ export function MyLocks() {
               { value: "received", label: t("myLocks.beneficiary"), count: totalReceived },
             ]}
           />
+
+          {/* Card / Table toggle */}
+          <div
+            role="group"
+            aria-label="View mode"
+            className="ml-auto flex items-center rounded-lg border border-border bg-card p-1 gap-1"
+          >
+            <button
+              type="button"
+              onClick={() => handleViewMode("card")}
+              aria-pressed={viewMode === "card"}
+              aria-label="Card view"
+              title="Card view"
+              className={cn(
+                "inline-flex items-center justify-center rounded-md p-1.5 transition-colors cursor-pointer",
+                viewMode === "card"
+                  ? "bg-secondary text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleViewMode("table")}
+              aria-pressed={viewMode === "table"}
+              aria-label="Table view"
+              title="Table view"
+              className={cn(
+                "inline-flex items-center justify-center rounded-md p-1.5 transition-colors cursor-pointer",
+                viewMode === "table"
+                  ? "bg-secondary text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Table2 className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {/* Search + filters */}
@@ -268,7 +339,7 @@ export function MyLocks() {
           </select>
         </div>
 
-        <LockGrid
+        <LockListView
           locks={filteredList}
           loading={loading}
           error={error}
@@ -278,6 +349,7 @@ export function MyLocks() {
           selectable={selectMode}
           selectedIds={selectedIds}
           onSelect={toggleSelect}
+          viewMode={viewMode}
         />
 
         <Pagination
@@ -300,18 +372,6 @@ export function MyLocks() {
             canTransfer={tab === "received"}
           />
         )}
-
-        <LockGrid
-          locks={filteredList}
-          loading={loading}
-          error={error}
-          onRetry={reload}
-          tab={tab}
-          hasFilters={search !== "" || statusFilter !== "all" || kindFilter !== "all"}
-          selectable={selectMode}
-          selectedIds={selectedIds}
-          onSelect={toggleSelect}
-        />
       </div>
 
       {bulkAction && (
@@ -326,7 +386,9 @@ export function MyLocks() {
   )
 }
 
-function LockGrid({
+// ── LockListView ──────────────────────────────────────────────────────────────
+
+function LockListView({
   locks,
   loading,
   error,
@@ -336,6 +398,7 @@ function LockGrid({
   selectable,
   selectedIds,
   onSelect,
+  viewMode,
 }: {
   locks: Lock[]
   loading: boolean
@@ -346,6 +409,7 @@ function LockGrid({
   selectable: boolean
   selectedIds: Set<string>
   onSelect: (id: string, checked: boolean) => void
+  viewMode: ViewMode
 }) {
   const { t } = useTranslation()
 
@@ -377,7 +441,11 @@ function LockGrid({
           <Wallet className="h-6 w-6" />
         </span>
         <h3 className="mt-4 text-lg font-semibold">
-          {hasFilters ? "No locks match your filters" : tab === "created" ? t("myLocks.noLocksCreated") : t("myLocks.noBeneficiary")}
+          {hasFilters
+            ? "No locks match your filters"
+            : tab === "created"
+            ? t("myLocks.noLocksCreated")
+            : t("myLocks.noBeneficiary")}
         </h3>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
           {hasFilters
@@ -394,6 +462,19 @@ function LockGrid({
             </Button>
           </Link>
         )}
+      </div>
+    )
+  }
+
+  if (viewMode === "table") {
+    return (
+      <div className="mt-6">
+        <LockTable
+          locks={locks}
+          selectable={selectable}
+          selectedIds={selectedIds}
+          onSelect={onSelect}
+        />
       </div>
     )
   }

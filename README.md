@@ -247,6 +247,10 @@ Both contracts implement an **admin upgrade with a 7-day timelock**.
 
 > The upgrade path exists solely for critical security fixes. User lock funds are held in persistent storage and are unaffected by WASM upgrades.
 
+## Troubleshooting
+
+Hitting a wallet connection failure, wrong-network error, stuck transaction, or a contract rejection? See **[docs/troubleshooting.md](docs/troubleshooting.md)** for a full list of error cases with causes and fixes.
+
 ## Security
 
 Found a security vulnerability? Please read our [Security Policy](SECURITY.md) before reporting. Do not open public issues for security vulnerabilities.
