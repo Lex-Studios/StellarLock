@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react"
-import { Routes, Route, Navigate, useLocation } from "react-router-dom"
+import { Routes, Route, useLocation } from "react-router-dom"
 import { Toaster } from "react-hot-toast"
 import { Layout } from "@/components/layout/Layout"
 import { PageSkeleton } from "@/components/ui/PageSkeleton"
@@ -21,6 +21,7 @@ const History = lazy(() => import("./pages/History").then((m) => ({ default: m.H
 const Analytics = lazy(() => import("./pages/Analytics").then((m) => ({ default: m.Analytics })))
 const Health = lazy(() => import("./pages/Health").then((m) => ({ default: m.HealthPage })))
 const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })))
+const NotFound = lazy(() => import("./pages/NotFound").then((m) => ({ default: m.NotFound })))
 
 export function App() {
   const location = useLocation()
@@ -54,7 +55,7 @@ export function App() {
           <Route path="/health" element={<Health />} />
           <Route path="/explore" element={<Discover />} />
           <Route path="/explore/:token" element={<Explorer />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
       <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
@@ -75,7 +76,7 @@ export function App() {
             <Route path="/health" element={<Health />} />
             <Route path="/explore" element={<Discover />} />
             <Route path="/explore/:token" element={<Explorer />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
       </Suspense>
