@@ -7,6 +7,7 @@ import { trackPageView } from "@/lib/analytics"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
 import { KeyboardShortcutsModal } from "@/components/ui/KeyboardShortcutsModal"
 import { PwaUpdatePrompt } from "@/components/ui/PwaUpdatePrompt"
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour"
 export { prefetch } from "@/lib/prefetch"
 
 const Landing = lazy(() => import("./pages/Landing").then((m) => ({ default: m.Landing })))
@@ -17,6 +18,7 @@ const LockCreated = lazy(() => import("./pages/LockCreated").then((m) => ({ defa
 const Explorer = lazy(() => import("./pages/Explorer").then((m) => ({ default: m.Explorer })))
 const Discover = lazy(() => import("./pages/Discover").then((m) => ({ default: m.Discover })))
 const History = lazy(() => import("./pages/History").then((m) => ({ default: m.History })))
+const Analytics = lazy(() => import("./pages/Analytics").then((m) => ({ default: m.Analytics })))
 const Health = lazy(() => import("./pages/Health").then((m) => ({ default: m.HealthPage })))
 const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })))
 
@@ -66,9 +68,10 @@ export function App() {
             <Route path="/app/locks" element={<MyLocks />} />
             <Route path="/app/lock/token/:id" element={<LockDetail />} />
             <Route path="/app/lock/lp/:id" element={<LockDetail />} />
-            {/* Legacy deep-link: redirect bare id to token detail */}
             <Route path="/app/lock/:id" element={<LockDetail />} />
+            <Route path="/app/settings" element={<Settings />} />
             <Route path="/app/history" element={<History />} />
+            <Route path="/app/analytics" element={<Analytics />} />
             <Route path="/health" element={<Health />} />
             <Route path="/explore" element={<Discover />} />
             <Route path="/explore/:token" element={<Explorer />} />

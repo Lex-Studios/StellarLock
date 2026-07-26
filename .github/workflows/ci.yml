@@ -7,6 +7,38 @@ on:
     branches: [ "main" ]
 
 jobs:
+  commitlint:
+    name: Commit Message Lint
+    runs-on: ubuntu-latest
+    # Conventional commit messages are what the changelog is generated from,
+    # so they have to be enforced for that output to be meaningful.
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint commit messages in this PR
+        run: >
+          pnpm exec commitlint
+          --from ${{ github.event.pull_request.base.sha }}
+          --to ${{ github.event.pull_request.head.sha }}
+          --verbose
+
   frontend:
     name: Frontend Checks
     runs-on: ubuntu-latest
@@ -42,8 +74,59 @@ jobs:
       - name: Type Check
         run: pnpm exec tsc -b
 
+      - name: Unit / component tests
+        run: pnpm test
+
+      - name: Storybook build
+        run: pnpm storybook:build
+
       - name: Build Vite App
         run: pnpm build
+
+  e2e:
+    name: End-to-End and Visual Regression
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Vite App
+        run: pnpm build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Visual regression tests
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload Playwright test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results/
+          retention-days: 14
 
   contracts:
     name: Smart Contract Checks
@@ -65,9 +148,19 @@ jobs:
         with:
           workspaces: ./contracts
 
-      # Replaced manual curl/tar sequence with the official Stellar step
+      # Official Stellar CLI action — version must stay in sync with the
+      # cargo install pin in Dockerfile.contracts (currently stellar-cli@27.0.0).
       - name: Install Stellar CLI
         uses: stellar/stellar-cli@v27.0.0
 
       - name: Build Contracts
         run: stellar contract build
+
+      - name: Check Rust formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run contract tests
+        run: cargo test --workspace --all-targets
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react"
+import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { BookUser, Plus, Pencil, Trash2, Check, X, Download, Upload, Search } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { Input, Label } from "@/components/ui/Input"
@@ -25,24 +26,13 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
   const [importError, setImportError] = useState<string | null>(null)
   const importRef = useRef<HTMLInputElement>(null)
   const firstFocusRef = useRef<HTMLButtonElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    firstFocusRef.current?.focus()
-  }, [])
-
-  // Close on Escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-    }
-    window.addEventListener("keydown", handler)
-    return () => window.removeEventListener("keydown", handler)
-  }, [onClose])
+  useModalFocusTrap({ active: true, containerRef, initialFocusRef: firstFocusRef, onEscape: onClose })
 
   const filtered = book.entries.filter(
     (e) =>
-      e.label.toLowerCase().includes(search.toLowerCase()) ||
-      e.address.toLowerCase().includes(search.toLowerCase()),
+      e.label.toLowerCase().includes(search.toLowerCase()) || e.address.toLowerCase().includes(search.toLowerCase()),
   )
 
   function handleAdd() {
@@ -110,13 +100,13 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="flex w-full max-w-lg flex-col rounded-xl bg-card shadow-2xl">
+      <div ref={containerRef} className="flex w-full max-w-lg flex-col rounded-xl bg-card shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-2">
             <BookUser className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold">Address Book</h2>
-            <span className="ml-1 rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
+            <span className="ms-1 rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
               {book.entries.length}
             </span>
           </div>
@@ -133,24 +123,19 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
         {/* Search + actions */}
         <div className="flex items-center gap-2 px-6 py-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="search"
               placeholder="Search addresses…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="h-9 w-full rounded-md border border-border bg-background ps-9 pe-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
           <Button variant="outline" size="sm" onClick={handleExport} title="Export address book">
             <Download className="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => importRef.current?.click()}
-            title="Import address book"
-          >
+          <Button variant="outline" size="sm" onClick={() => importRef.current?.click()} title="Import address book">
             <Upload className="h-4 w-4" />
           </Button>
           <input
@@ -175,9 +160,7 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
         </div>
 
         {importError && (
-          <p className="mx-6 mb-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {importError}
-          </p>
+          <p className="mx-6 mb-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">{importError}</p>
         )}
 
         {/* Add form */}
@@ -202,16 +185,21 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
                   value={newAddress}
                   onChange={(e) => setNewAddress(e.target.value)}
                   className={
-                    newAddress && !isValidStellarAddress(newAddress)
-                      ? "border-destructive focus:ring-destructive"
-                      : ""
+                    newAddress && !isValidStellarAddress(newAddress) ? "border-destructive focus:ring-destructive" : ""
                   }
                 />
               </div>
             </div>
             {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
             <div className="mt-3 flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => { setAddMode(false); setError(null) }}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setAddMode(false)
+                  setError(null)
+                }}
+              >
                 Cancel
               </Button>
               <Button size="sm" onClick={handleAdd}>
@@ -273,9 +261,7 @@ export function AddressBookModal({ onSelect, onClose }: AddressBookModalProps) {
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{entry.label}</p>
-                        <p className="font-mono text-xs text-muted-foreground">
-                          {shortAddress(entry.address, 8, 8)}
-                        </p>
+                        <p className="font-mono text-xs text-muted-foreground">{shortAddress(entry.address, 8, 8)}</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
                         {onSelect && (

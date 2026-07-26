@@ -1,8 +1,29 @@
 {
   "name": "stellarlock",
   "version": "0.1.0",
+
+  "description": "StellarLock — secure liquidity locking for Stellar/Soroban",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/StellarLock/StellarLock.git"
+  },
+  "homepage": "https://github.com/StellarLock/StellarLock",
+  "keywords": [
+    "stellar",
+    "soroban",
+    "liquidity",
+    "lock",
+    "token",
+    "defi"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+
   "private": true,
   "type": "module",
+
   "scripts": {
     "dev": "vite --host",
     "dev:testnet": "cp .env.testnet .env && vite --host",
@@ -20,11 +41,16 @@
     "test:load": "node --loader tsx src/test/load-test-runner.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:e2e:update": "playwright test --update-snapshots",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "prepare": "husky",
+    "changelog": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -r 0",
+    "changelog:release": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s"
   },
+
   "pnpm": {
     "overrides": {
       "protobufjs": "^7.5.6",
@@ -32,6 +58,7 @@
       "vitest": "^3.2.6"
     }
   },
+
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^1.7.6",
     "@stellar/freighter-api": "^6.0.1",
@@ -41,6 +68,7 @@
     "clsx": "^2.1.1",
     "i18next": "^26.3.1",
     "i18next-browser-languagedetector": "^8.2.1",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.16.0",
     "qrcode.react": "3.2.0",
     "react": "^19",
@@ -49,11 +77,16 @@
     "react-hot-toast": "^2.6.0",
     "react-i18next": "^17.0.8",
     "react-router-dom": "^7.17.0",
+    "recharts": "^3.10.1",
     "tailwind-merge": "^3.3.1",
     "web-vitals": "^4.0.1"
   },
+
   "devDependencies": {
+    "@commitlint/cli": "^19",
+    "@commitlint/config-conventional": "^19",
     "@eslint/js": "^9",
+    "@playwright/test": "^1.61.1",
     "@storybook/addon-a11y": "^8.0.0",
     "@storybook/addon-essentials": "^8.0.0",
     "@storybook/addon-interactions": "^8.0.0",
@@ -68,31 +101,6 @@
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@vitejs/plugin-react": "^6.0.2",
-    "@vitest/ui": "^1",
-    "eslint": "^9",
-    "eslint-config-prettier": "^10",
-    "eslint-plugin-react-hooks": "^5",
-    "eslint-plugin-react-refresh": "^0.4",
-    "husky": "^9",
-    "jsdom": "^24",
-    "lint-staged": "^15",
-    "prettier": "^3",
-    "storybook": "^8.0.0",
-    "tailwindcss": "^4",
-    "typescript": "5.7.3",
-    "typescript-eslint": "^8",
-    "vite": "^8",
-    "vitest": "^1",
-    "vitest-axe": "^0.1.0"
-  },
-  "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,css,html}": [
-      "prettier --write"
-    ]
+    "@vitejs/plugin-react": "^6.0.2"
   }
 }

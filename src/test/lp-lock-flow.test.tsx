@@ -12,7 +12,7 @@ vi.mock("@/hooks/useWallet", () => ({
 }))
 
 vi.mock("@/lib/lp-locker", () => ({
-  createLpLock: vi.fn().mockResolvedValue({ id: "2" }),
+  createLpLock: vi.fn().mockResolvedValue({ id: "2", txHash: "mock-tx-hash" }),
   submitTokenApproval: vi.fn().mockResolvedValue(undefined),
 }))
 
@@ -144,9 +144,11 @@ describe("LP Lock Creation Flow", () => {
     const confirmButton = await screen.findByRole("button", { name: /confirm & lock/i })
     await user.click(confirmButton)
 
+    // Unrecognised errors are sanitized to the generic message.
     await waitFor(() => {
-      expect(screen.getByText(/insufficient liquidity/i)).toBeInTheDocument()
+      expect(screen.getByText(/something went wrong/i)).toBeInTheDocument()
     })
+    expect(screen.queryByText(/insufficient liquidity/i)).not.toBeInTheDocument()
   })
 
   it("should use connected wallet as beneficiary", async () => {
@@ -180,7 +182,7 @@ describe("LP Lock Creation Flow", () => {
 
   it("should handle double-submission prevention", async () => {
     const { createLpLock } = await import("@/lib/lp-locker")
-    let resolveCreate!: (value: { id: string }) => void
+    let resolveCreate!: (value: { id: string; txHash: string }) => void
     vi.mocked(createLpLock).mockReturnValueOnce(
       new Promise((resolve) => {
         resolveCreate = resolve
@@ -215,7 +217,7 @@ describe("LP Lock Creation Flow", () => {
       expect(confirmButton).toBeDisabled()
     })
 
-    resolveCreate({ id: "2" })
+    resolveCreate({ id: "2", txHash: "mock-tx-hash" })
     expect(createLpLock).toHaveBeenCalledTimes(1)
   })
 })
