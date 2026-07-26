@@ -7,6 +7,8 @@ const REQUIRED = [
   "VITE_NETWORK",
   "VITE_RPC_URL",
   "VITE_HORIZON_URL",
+  "VITE_CONTRACT_ENV",
+  "VITE_CONTRACT_VERSION",
   "VITE_TOKEN_LOCKER_CONTRACT",
   "VITE_LP_LOCKER_CONTRACT",
 ] as const
@@ -29,6 +31,7 @@ function validate(): void {
 validate()
 
 type Network = "testnet" | "staging" | "mainnet"
+type ContractEnv = "testnet" | "mainnet"
 
 const raw = (import.meta.env.VITE_NETWORK as string).toLowerCase()
 
@@ -36,6 +39,8 @@ export const ENV = {
   network: raw as Network,
   rpcUrl: import.meta.env.VITE_RPC_URL as string,
   horizonUrl: import.meta.env.VITE_HORIZON_URL as string,
+  contractEnv: import.meta.env.VITE_CONTRACT_ENV as ContractEnv,
+  contractVersion: import.meta.env.VITE_CONTRACT_VERSION as string,
   tokenLockerContract: import.meta.env.VITE_TOKEN_LOCKER_CONTRACT as string,
   lpLockerContract: import.meta.env.VITE_LP_LOCKER_CONTRACT as string,
   appUrl: (import.meta.env.VITE_APP_URL as string | undefined) ?? "",
