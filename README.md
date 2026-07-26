@@ -247,6 +247,10 @@ Both contracts implement an **admin upgrade with a 7-day timelock**.
 
 > The upgrade path exists solely for critical security fixes. User lock funds are held in persistent storage and are unaffected by WASM upgrades.
 
+## Contributing
+
+We welcome contributions from the community! Please review our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before getting started.
+
 ## Security
 
 Found a security vulnerability? Please read our [Security Policy](SECURITY.md) before reporting. Do not open public issues for security vulnerabilities.
