@@ -5,7 +5,6 @@ import { useState } from "react"
 
 const languages = [
   { code: "en", label: "English" },
-  { code: "ar", label: "العربية" },
 ]
 
 export function LanguageSelector() {
