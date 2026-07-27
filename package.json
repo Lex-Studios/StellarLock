@@ -1,7 +1,6 @@
 {
   "name": "stellarlock",
   "version": "0.1.0",
-
   "description": "StellarLock — secure liquidity locking for Stellar/Soroban",
   "license": "MIT",
   "repository": {
@@ -20,10 +19,8 @@
   "engines": {
     "node": "22"
   },
-
   "private": true,
   "type": "module",
-
   "scripts": {
     "dev": "vite --host",
     "dev:testnet": "cp .env.testnet .env && vite --host",
@@ -51,7 +48,6 @@
     "changelog": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -r 0",
     "changelog:release": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s"
   },
-
   "pnpm": {
     "overrides": {
       "protobufjs": "^7.5.6",
@@ -59,7 +55,6 @@
       "vitest": "^3.2.6"
     }
   },
-
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^1.7.6",
     "@stellar/freighter-api": "^6.0.1",
@@ -82,7 +77,6 @@
     "tailwind-merge": "^3.3.1",
     "web-vitals": "^4.0.1"
   },
-
   "devDependencies": {
     "@commitlint/cli": "^19",
     "@commitlint/config-conventional": "^19",
@@ -102,6 +96,9 @@
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@vitejs/plugin-react": "^6.0.2"
+    "@vitejs/plugin-react": "^6.0.2",
+    "jsdom": "^30.0.0",
+    "vitest": "^3.2.7",
+    "vitest-axe": "^0.1.0"
   }
 }
