@@ -7,7 +7,6 @@ import { trackPageView } from "@/lib/analytics"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
 import { KeyboardShortcutsModal } from "@/components/ui/KeyboardShortcutsModal"
 import { PwaUpdatePrompt } from "@/components/ui/PwaUpdatePrompt"
-import { OnboardingTour } from "@/components/onboarding/OnboardingTour"
 export { prefetch } from "@/lib/prefetch"
 
 const Landing = lazy(() => import("./pages/Landing").then((m) => ({ default: m.Landing })))
@@ -69,6 +68,7 @@ export function App() {
             <Route path="/app/locks" element={<MyLocks />} />
             <Route path="/app/lock/token/:id" element={<LockDetail />} />
             <Route path="/app/lock/lp/:id" element={<LockDetail />} />
+            {/* Legacy deep-link: redirect bare id to token detail */}
             <Route path="/app/lock/:id" element={<LockDetail />} />
             <Route path="/app/settings" element={<Settings />} />
             <Route path="/app/history" element={<History />} />
