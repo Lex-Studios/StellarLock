@@ -53,6 +53,9 @@ playwright/.cache/
 src/test/__snapshots__/
 *.snap
 
+# Playwright visual snapshot directories
+e2e/**/*-snapshots/
+
 # Scratch / debug output files
 err_output.txt
 test_output.txt
@@ -82,3 +85,10 @@ yarn-error.log*
 *.swp
 *.swo
 *~
+
+# Python scripts / scratch files
+*.py
+
+# Misc leftover root-level scratch files
+README.me
+1}
