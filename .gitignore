@@ -42,5 +42,22 @@ playwright-report/
 blob-report/
 playwright/.cache/
 
+# Vitest / Jest snapshots
+**/__snapshots__/
+src/test/__snapshots__/
+*.snap
+
+# Scratch / debug output files
+err_output.txt
+test_output.txt
+build_out.txt
+cargo_test_output.txt
+dup_funcs.txt
+unique_funcs.txt
+function_names.txt
+find_dups.py
+check_dups.py
+1}
+
 # OS
 Thumbs.db
