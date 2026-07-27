@@ -16,7 +16,7 @@ import { Card } from "@/components/ui/Card"
 import { buttonVariants } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
 import { NETWORK } from "@/lib/stellar"
-import { formatDate } from "@/lib/utils"
+import { formatDate, formatDateTime } from "@/lib/utils"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -161,7 +161,7 @@ export function LockCreated() {
 
         {timestamp && (
           <DetailRow label="Created at">
-            <span className="text-sm">{new Date(timestamp).toLocaleString()}</span>
+            <span className="text-sm">{formatDateTime(timestamp)}</span>
           </DetailRow>
         )}
       </Card>

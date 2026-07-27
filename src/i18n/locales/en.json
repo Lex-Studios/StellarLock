@@ -317,10 +317,35 @@
       "message": "New date must be after the current unlock date.",
       "recovery": "Choose a later date."
     },
-    "extensionLimitReached": {
-      "title": "Extension Limit Reached",
-      "message": "This lock has reached the maximum number of extensions.",
-      "recovery": null
+    "nothingToRelease": {
+      "title": "Nothing to Release",
+      "message": "There are no tokens available to release from the vesting schedule at this time.",
+      "recovery": "Wait for the next vesting period or check the vesting schedule."
+    },
+    "vestingEndBeforeStart": {
+      "title": "Invalid Vesting Schedule",
+      "message": "The vesting end date must be after the vesting start date.",
+      "recovery": "Choose a vesting end date that is after the start date."
+    },
+    "tooFewBeneficiaries": {
+      "title": "Not Enough Beneficiaries",
+      "message": "A split lock must have at least 2 beneficiaries.",
+      "recovery": "Add more beneficiaries to create a split lock."
+    },
+    "tooManyBeneficiaries": {
+      "title": "Too Many Beneficiaries",
+      "message": "A split lock cannot have more than 10 beneficiaries.",
+      "recovery": "Reduce the number of beneficiaries to 10 or fewer."
+    },
+    "sharesMustSum10000": {
+      "title": "Invalid Share Distribution",
+      "message": "The beneficiary shares must sum to exactly 10,000 basis points (100%).",
+      "recovery": "Adjust the shares so they total exactly 10,000 BPS."
+    },
+    "rateLimitExceeded": {
+      "title": "Too Many Requests",
+      "message": "You've exceeded the rate limit for creating locks. Please wait before creating another lock.",
+      "recovery": "Wait a moment and try again."
     },
     "insufficientBalance": {
       "title": "Insufficient Balance",
@@ -347,20 +372,10 @@
       "message": "An unexpected error occurred.",
       "recovery": "Please try again. If this persists, contact support."
     },
-    "unlockExceedsMax": {
-      "title": "Unlock Date Too Far Out",
-      "message": "The unlock date exceeds the maximum allowed lock duration.",
-      "recovery": "Choose an earlier unlock date."
-    },
     "unlockMustBeFuture": {
       "title": "Invalid Unlock Date",
       "message": "Unlock date must be in the future.",
       "recovery": "Choose a date after today."
-    },
-    "unlockTooSoon": {
-      "title": "Unlock Date Too Soon",
-      "message": "The unlock date does not meet the minimum lock duration.",
-      "recovery": "Choose an unlock date further in the future."
     },
     "userRejected": {
       "title": "Transaction Cancelled",

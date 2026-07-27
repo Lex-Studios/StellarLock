@@ -37,6 +37,13 @@ const CONTRACT_ERRORS: Record<string, Omit<StructuredError, 'code'>> = {
     link: null,
     i18nKey: 'errors.alreadyWithdrawn',
   },
+  NothingToRelease: {
+    title: 'errors.nothingToRelease.title',
+    message: 'errors.nothingToRelease.message',
+    recovery: 'errors.nothingToRelease.recovery',
+    link: null,
+    i18nKey: 'errors.nothingToRelease',
+  },
   CanOnlyExtend: {
     title: 'errors.canOnlyExtend.title',
     message: 'errors.canOnlyExtend.message',
@@ -51,26 +58,40 @@ const CONTRACT_ERRORS: Record<string, Omit<StructuredError, 'code'>> = {
     link: null,
     i18nKey: 'errors.lockDurationTooLong',
   },
-  UnlockTooSoon: {
-    title:    'errors.unlockTooSoon.title',
-    message:  'errors.unlockTooSoon.message',
-    recovery: 'errors.unlockTooSoon.recovery',
-    link:     null,
-    i18nKey:  'errors.unlockTooSoon',
+  VestingEndBeforeStart: {
+    title: 'errors.vestingEndBeforeStart.title',
+    message: 'errors.vestingEndBeforeStart.message',
+    recovery: 'errors.vestingEndBeforeStart.recovery',
+    link: null,
+    i18nKey: 'errors.vestingEndBeforeStart',
   },
-  ExtensionLimitReached: {
-    title:    'errors.extensionLimitReached.title',
-    message:  'errors.extensionLimitReached.message',
-    recovery: 'errors.extensionLimitReached.recovery',
-    link:     null,
-    i18nKey:  'errors.extensionLimitReached',
+  TooFewBeneficiaries: {
+    title: 'errors.tooFewBeneficiaries.title',
+    message: 'errors.tooFewBeneficiaries.message',
+    recovery: 'errors.tooFewBeneficiaries.recovery',
+    link: null,
+    i18nKey: 'errors.tooFewBeneficiaries',
   },
-  UnlockExceedsMax: {
-    title:    'errors.unlockExceedsMax.title',
-    message:  'errors.unlockExceedsMax.message',
-    recovery: 'errors.unlockExceedsMax.recovery',
-    link:     null,
-    i18nKey:  'errors.unlockExceedsMax',
+  TooManyBeneficiaries: {
+    title: 'errors.tooManyBeneficiaries.title',
+    message: 'errors.tooManyBeneficiaries.message',
+    recovery: 'errors.tooManyBeneficiaries.recovery',
+    link: null,
+    i18nKey: 'errors.tooManyBeneficiaries',
+  },
+  SharesMustSum10000: {
+    title: 'errors.sharesMustSum10000.title',
+    message: 'errors.sharesMustSum10000.message',
+    recovery: 'errors.sharesMustSum10000.recovery',
+    link: null,
+    i18nKey: 'errors.sharesMustSum10000',
+  },
+  RateLimitExceeded: {
+    title: 'errors.rateLimitExceeded.title',
+    message: 'errors.rateLimitExceeded.message',
+    recovery: 'errors.rateLimitExceeded.recovery',
+    link: null,
+    i18nKey: 'errors.rateLimitExceeded',
   },
 };
 

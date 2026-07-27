@@ -1,5 +1,9 @@
 # Contributing
 
+## Code of Conduct
+
+We are committed to providing a welcoming and inclusive community. Please review our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing. All contributors are expected to uphold this code of conduct.
+
 ## Prerequisites
 
 - **Node.js** 18+

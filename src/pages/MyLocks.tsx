@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react"
+import { useMemo, useState, useCallback, useRef, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Plus, Wallet, Layers, Search, CheckSquare, LayoutGrid, Table2 } from "lucide-react"
 import { Helmet } from "react-helmet-async"
@@ -7,6 +7,7 @@ import { useWallet } from "@/hooks/useWallet"
 import { useMyLocks } from "@/hooks/useLocks"
 import { extendLock, transferBeneficiary } from "@/lib/token-locker"
 import { extendLpLock, transferLpBeneficiary } from "@/lib/lp-locker"
+import { exportToCSV, exportToJSON } from "@/lib/export"
 import { Tabs } from "@/components/ui/Tabs"
 import { Button } from "@/components/ui/Button"
 import { StatCard } from "@/components/ui/StatCard"
@@ -63,6 +64,8 @@ export function MyLocks() {
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkAction, setBulkAction] = useState<BulkAction>(null)
+  const [exportOpen, setExportOpen] = useState(false)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
 
   const created = data?.created ?? []
   const received = data?.received ?? []
@@ -135,6 +138,30 @@ export function MyLocks() {
     setSelectedIds(new Set())
   }
 
+  const handleExportCSV = useCallback(() => {
+    const filename = `stellar-locks-${tab}-${new Date().toISOString().split("T")[0]}.csv`
+    exportToCSV(filteredList, filename)
+    setExportOpen(false)
+  }, [filteredList, tab])
+
+  const handleExportJSON = useCallback(() => {
+    const filename = `stellar-locks-${tab}-${new Date().toISOString().split("T")[0]}.json`
+    exportToJSON(filteredList, filename)
+    setExportOpen(false)
+  }, [filteredList, tab])
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setExportOpen(false)
+      }
+    }
+    if (exportOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+      return () => document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [exportOpen])
+
   const handleBulkExtend = useCallback(
     async (newDate: string, onItemSettled: (id: string, outcome: { status: "success" | "error"; error?: string }) => void) => {
       const newUnlockSecs = Math.floor(new Date(newDate).getTime() / 1000)
@@ -200,6 +227,34 @@ export function MyLocks() {
             <p className="mt-2 text-muted-foreground">{t("myLocks.subtitle")}</p>
           </div>
           <div className="flex gap-2">
+            <div className="relative" ref={exportMenuRef}>
+              <Button
+                variant="outline"
+                onClick={() => setExportOpen(!exportOpen)}
+                disabled={filteredList.length === 0}
+                title={filteredList.length === 0 ? "No locks to export" : "Export locks"}
+              >
+                <Download className="h-4 w-4" />
+                Export
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </Button>
+              {exportOpen && (
+                <div className="absolute right-0 mt-2 w-48 rounded-lg border border-border bg-background shadow-lg z-10">
+                  <button
+                    onClick={handleExportCSV}
+                    className="block w-full px-4 py-2 text-left text-sm hover:bg-primary/10 rounded-t-lg"
+                  >
+                    Export as CSV
+                  </button>
+                  <button
+                    onClick={handleExportJSON}
+                    className="block w-full px-4 py-2 text-left text-sm hover:bg-primary/10 rounded-b-lg border-t border-border"
+                  >
+                    Export as JSON
+                  </button>
+                </div>
+              )}
+            </div>
             <Button
               variant="outline"
               onClick={() => {

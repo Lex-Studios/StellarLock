@@ -1,0 +1,22 @@
+# robots.txt — StellarLock (https://stellarlock.app)
+#
+# Public explorer routes are open to all crawlers.
+# Wallet-connected app routes and internal utility endpoints are excluded
+# because they require authentication, produce no meaningful indexed content,
+# and would waste crawl budget.
+
+User-agent: *
+
+# ── Public routes ────────────────────────────────────────────────────────────
+Allow: /$
+Allow: /explore$
+Allow: /explore/
+
+# ── App-only routes (wallet-connected, no SEO value) ────────────────────────
+Disallow: /app/
+
+# ── Internal / utility endpoints ────────────────────────────────────────────
+Disallow: /health
+
+# ── Sitemap ──────────────────────────────────────────────────────────────────
+Sitemap: https://stellarlock.app/sitemap.xml
