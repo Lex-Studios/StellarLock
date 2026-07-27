@@ -81,6 +81,21 @@
     "insufficientBalance": "Saldo insuficiente. Tienes {{balance}} pero necesitas {{amount}}.",
     "needsApproval": "Necesitas aprobar el contrato para transferir tus tokens antes de bloquear.",
     "approveAndContinue": "Aprobar y continuar",
+    "vestingTemplate": "Calendario de vesting",
+    "vestingTemplateHint": "Elige un calendario de vesting predefinido o establece una fecha de desbloqueo personalizada.",
+    "vestingTemplateCustom": "Personalizado",
+    "vestingTemplateLinear6m": "Lineal 6 meses",
+    "vestingTemplateLinear1y": "Lineal 1 año",
+    "vestingTemplateLinear2y": "Lineal 2 años",
+    "vestingTemplateQuarterly": "Trimestral (25% por trimestre)",
+    "vestingStart": "Inicio del vesting",
+    "vestingEnd": "Fin del vesting",
+    "metadataTitle": "Información del proyecto (opcional)",
+    "metadataDesc": "Se muestra en la página de detalle y explorador del bloqueo para que tu comunidad pueda verificar quién lo creó.",
+    "description": "Descripción",
+    "descriptionPlaceholder": "¿Para qué es este bloqueo?",
+    "projectUrl": "URL del proyecto",
+    "logoUrl": "URL del logo",
     "approving": "Aprobando…"
   },
   "lpForm": {
@@ -183,6 +198,8 @@
     "tokensSecured": "Tokens asegurados",
     "viewAll": "Ver todos los bloqueos",
     "noLocks": "No se encontraron bloqueos para este token.",
+    "recentActivity": "Actividad reciente",
+    "noRecentActivity": "Aún no hay actividad reciente.",
     "searchHint": "Busca por símbolo de token o dirección de contrato para encontrar bloqueos específicos."
   },
   "search": {
@@ -216,6 +233,12 @@
     "unlocksIn": "Se desbloquea en",
     "lock": "Bloqueo #{{id}}",
     "view": "Ver"
+  },
+  "wallet": {
+    "disconnected": "Billetera desconectada",
+    "disconnectedDesc": "Tu billetera Freighter se desconectó o la extensión dejó de estar disponible. Vuelve a conectarte para continuar.",
+    "networkChanged": "Red cambiada",
+    "networkChangedDesc": "La red de tu billetera cambió. Vuelve a conectarte para seguir usando StellarLock."
   },
   "breadcrumbs": {
     "home": "Home",
