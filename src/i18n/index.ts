@@ -22,7 +22,7 @@ function applyDocumentDirection(lng: string | undefined) {
 
 void i18n
   .use(LanguageDetector)
-  .use(initReactI18SUPPORTED_LOCALES
+  .use(initReactI18next)
   .init({
     supportedLngs: SUPPORTED_LOCALES,
     resources: {
