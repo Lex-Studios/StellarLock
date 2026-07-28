@@ -4,6 +4,11 @@ import userEvent from "@testing-library/user-event"
 import { render } from "./utils"
 import { BulkActionsToolbar } from "@/components/locks/BulkActionsToolbar"
 
+vi.mock("@/hooks/useWallet", () => ({
+  useWallet: vi.fn(() => ({ isConnected: false, connecting: false, connect: vi.fn() })),
+  WalletProvider: ({ children }: { children: React.ReactNode }) => children,
+}))
+
 const defaultProps = {
   selectedCount: 0,
   onClear: vi.fn(),
