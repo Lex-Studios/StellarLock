@@ -48,11 +48,6 @@ playwright-report/
 blob-report/
 playwright/.cache/
 
-# Vitest / Jest snapshots
-**/__snapshots__/
-src/test/__snapshots__/
-*.snap
-
 # Playwright visual snapshot directories
 e2e/**/*-snapshots/
 
@@ -66,7 +61,6 @@ unique_funcs.txt
 function_names.txt
 find_dups.py
 check_dups.py
-1}
 
 # OS
 Thumbs.db
@@ -91,4 +85,3 @@ yarn-error.log*
 
 # Misc leftover root-level scratch files
 README.me
-1}
