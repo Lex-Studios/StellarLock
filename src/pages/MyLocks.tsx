@@ -180,7 +180,7 @@ export function MyLocks() {
           onItemSettled(lock.id, { status: "success" })
           succeeded += 1
         } catch (err) {
-          onItemSettled(lock.id, { status: "error", error: err instanceof Error ? err.message : "Extend failed" })
+          onItemSettled(lock.id, { status: "error", error: "Extend failed" })
           failed += 1
         }
       }
@@ -204,7 +204,7 @@ export function MyLocks() {
           onItemSettled(lock.id, { status: "success" })
           succeeded += 1
         } catch (err) {
-          onItemSettled(lock.id, { status: "error", error: err instanceof Error ? err.message : "Transfer failed" })
+          onItemSettled(lock.id, { status: "error", error: "Transfer failed" })
           failed += 1
         }
       }

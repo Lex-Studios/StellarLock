@@ -81,6 +81,25 @@ The `main` branch is protected. Direct pushes are blocked. All changes must go t
 | Conversation resolution | Required before merge |
 | Rule applies to admins | Enabled |
 
+**Required Status Checks:**
+
+Before a PR can be merged to `main`, these CI jobs from `.github/workflows/ci.yml` must pass:
+
+- **Frontend Checks** — ESLint, TypeScript type checking, unit/component tests, Storybook build, Vite build
+- **Smart Contract Checks** — Rust build, `cargo fmt`, `cargo test`, `cargo clippy`
+
+**Maintaining Branch Protection:**
+
+Branch protection is configured via `.github/scripts/apply-branch-protection.sh`. To update:
+
+1. If you rename, add, or remove a CI job in `ci.yml`, update the `contexts` array in `apply-branch-protection.sh` to match the exact job name as it appears on GitHub PR checks.
+2. Run the script as a repository admin:
+   ```bash
+   gh auth login  # if not already authenticated as admin
+   bash .github/scripts/apply-branch-protection.sh
+   ```
+3. Verify at: https://github.com/StellarLock/StellarLock/settings/branch_protection_rules
+
 **CODEOWNERS** (`.github/CODEOWNERS`) maps directories to reviewer groups:
 
 | Path | Required reviewer |
