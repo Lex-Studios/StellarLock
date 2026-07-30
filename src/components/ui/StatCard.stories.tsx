@@ -30,3 +30,12 @@ export const WithHint: Story = {
 export const LargeValue: Story = {
   args: { label: "Total Value Locked", value: "$4.2M" },
 }
+
+export const WithIconAndHint: Story = {
+  args: {
+    label: "Ready to Withdraw",
+    value: "3",
+    icon: <Layers className="h-4 w-4" />,
+    hint: "Action available now",
+  },
+}
