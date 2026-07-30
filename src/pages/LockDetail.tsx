@@ -13,6 +13,7 @@ import {
 import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { useLock } from "@/hooks/useLocks"
+import { useOptimisticLock } from "@/hooks/useOptimisticLock"
 import { useWallet } from "@/hooks/useWallet"
 import { withdrawLock, extendLock, transferBeneficiary } from "@/lib/token-locker"
 import { withdrawLpLock, extendLpLock, transferLpBeneficiary } from "@/lib/lp-locker"
@@ -102,10 +103,21 @@ export function LockDetail() {
 
 const log = createLogger("LockDetail")
 
-function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }) {
+function LockDetailView({ lock: sourceLock, onChange }: { lock: Lock; onChange: () => void }) {
   const { t } = useTranslation()
   const { address, signTransaction } = useWallet()
   const navigate = useNavigate()
+
+  // Withdraw and extend show their intended outcome immediately and roll back
+  // if the transaction fails. Everything below reads the overlaid lock.
+  const {
+    lock: optimisticLock,
+    applyOptimistic,
+    confirmOptimistic,
+    revertOptimistic,
+  } = useOptimisticLock(sourceLock)
+  const lock = optimisticLock ?? sourceLock
+
   const isLp = lock.kind === "lp"
   const verified = useVerifiedToken(lock.token.address)
 
@@ -166,6 +178,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
     setBusy("withdraw")
     setTxPhase("simulating")
     setTxError(null)
+    applyOptimistic({ status: "withdrawn" })
     try {
       const { txHash } = await (isLp
         ? withdrawLpLock(lock.id, address!, signTransaction, setTxPhase)
@@ -174,8 +187,10 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
       trackEvent("lock_withdraw", { kind: lock.kind })
       notify.withdrawalCompleted()
       announce(t("lockDetail.withdrawSuccess"))
+      confirmOptimistic()
       onChange()
     } catch (err) {
+      revertOptimistic()
       log.error("[handleWithdraw error]", err)
       reportTxFailure(err)
     } finally {
@@ -191,6 +206,11 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
     setBusy("extend")
     setTxPhase("simulating")
     setTxError(null)
+    // `unlockAt` is stored in ms; `ts` is the contract's seconds value.
+    applyOptimistic({
+      unlockAt: ts * 1000,
+      extendedCount: lock.extendedCount + 1,
+    })
     try {
       const { txHash } = await (isLp
         ? extendLpLock(lock.id, ts, address!, signTransaction, setTxPhase)
@@ -199,9 +219,11 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
       trackEvent("lock_extend", { kind: lock.kind })
       notify.extensionConfirmed()
       announce(t("lockDetail.extendSuccess"))
+      confirmOptimistic()
       setExtendOpen(false)
       onChange()
     } catch (err) {
+      revertOptimistic()
       log.error("[handleExtend error]", err)
       reportTxFailure(err)
     } finally {
