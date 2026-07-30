@@ -33,6 +33,7 @@ pub enum DataKey {
     Admin,
     PendingAdmin,
     UpgradeProposal,
+    ReentrancyGuard,
 }
 
 const UPGRADE_DELAY: u64 = 7 * 24 * 3600;
@@ -57,6 +58,7 @@ pub enum ContractError {
     NotAdmin             = 6,
     NoPendingAdmin       = 7,
     NotPendingAdmin      = 8,
+    ReentrancyDetected   = 9,
 }
 
 // ── On-chain types ────────────────────────────────────────────────────────────
@@ -194,6 +196,19 @@ fn collect_locks_paginated(env: &Env, ids: Vec<u64>, offset: u32, limit: u32) ->
     out
 }
 
+fn enter_guard(env: &Env) -> Result<(), ContractError> {
+    if env.storage().temporary().has(&DataKey::ReentrancyGuard) {
+        return Err(ContractError::ReentrancyDetected);
+    }
+    env.storage().temporary().set(&DataKey::ReentrancyGuard, &true);
+    env.storage().temporary().extend_ttl(&DataKey::ReentrancyGuard, 1, 1);
+    Ok(())
+}
+
+fn exit_guard(env: &Env) {
+    env.storage().temporary().remove(&DataKey::ReentrancyGuard);
+}
+
 // ── Contract ──────────────────────────────────────────────────────────────────
 
 #[contract]
@@ -280,81 +295,96 @@ impl LpLocker {
 
     /// Withdraw pool-share tokens. Callable by beneficiary after unlock_at.
     pub fn withdraw(env: Env, id: u64) -> Result<(), ContractError> {
-        let mut lock = load_lock(&env, id);
-        lock.beneficiary.require_auth();
+        enter_guard(&env)?;
+        let result = (|| {
+            let mut lock = load_lock(&env, id);
+            lock.beneficiary.require_auth();
 
-        if lock.withdrawn {
-            return Err(ContractError::AlreadyWithdrawn);
-        }
-        if env.ledger().timestamp() < lock.unlock_at {
-            return Err(ContractError::StillLocked);
-        }
+            if lock.withdrawn {
+                return Err(ContractError::AlreadyWithdrawn);
+            }
+            if env.ledger().timestamp() < lock.unlock_at {
+                return Err(ContractError::StillLocked);
+            }
 
-        token::Client::new(&env, &lock.pool_share).transfer(
-            &env.current_contract_address(),
-            &lock.beneficiary,
-            &lock.amount,
-        );
+            token::Client::new(&env, &lock.pool_share).transfer(
+                &env.current_contract_address(),
+                &lock.beneficiary,
+                &lock.amount,
+            );
 
-        // Decrement TVL
-        let current_tvl: i128 = env.storage().persistent().get(&DataKey::TotalLocked(lock.pool_share.clone())).unwrap_or(0);
-        let new_tvl = (current_tvl - lock.amount).max(0);
-        env.storage().persistent().set(&DataKey::TotalLocked(lock.pool_share.clone()), &new_tvl);
+            // Decrement TVL
+            let current_tvl: i128 = env.storage().persistent().get(&DataKey::TotalLocked(lock.pool_share.clone())).unwrap_or(0);
+            let new_tvl = (current_tvl - lock.amount).max(0);
+            env.storage().persistent().set(&DataKey::TotalLocked(lock.pool_share.clone()), &new_tvl);
 
-        lock.withdrawn = true;
-        save_lock(&env, &lock);
-        env.events().publish(
-            (Symbol::new(&env, "lp_lock_withdrawn"),),
-            (id, lock.beneficiary.clone(), lock.pool_share.clone(), lock.amount),
-        );
-        Ok(())
+            lock.withdrawn = true;
+            save_lock(&env, &lock);
+            env.events().publish(
+                (Symbol::new(&env, "lp_lock_withdrawn"),),
+                (id, lock.beneficiary.clone(), lock.pool_share.clone(), lock.amount),
+            );
+            Ok(())
+        })();
+        exit_guard(&env);
+        result
     }
 
     /// Extend the unlock date. Creator only, can only increase.
     pub fn extend(env: Env, id: u64, new_unlock_at: u64) -> Result<(), ContractError> {
-        let mut lock = load_lock(&env, id);
-        lock.creator.require_auth();
+        enter_guard(&env)?;
+        let result = (|| {
+            let mut lock = load_lock(&env, id);
+            lock.creator.require_auth();
 
-        if lock.withdrawn {
-            return Err(ContractError::AlreadyWithdrawn);
-        }
-        if new_unlock_at <= lock.unlock_at {
-            return Err(ContractError::CanOnlyExtend);
-        }
+            if lock.withdrawn {
+                return Err(ContractError::AlreadyWithdrawn);
+            }
+            if new_unlock_at <= lock.unlock_at {
+                return Err(ContractError::CanOnlyExtend);
+            }
 
-        let old_unlock_at = lock.unlock_at;
-        lock.unlock_at = new_unlock_at;
-        lock.extended_count += 1;
+            let old_unlock_at = lock.unlock_at;
+            lock.unlock_at = new_unlock_at;
+            lock.extended_count += 1;
 
-        save_lock(&env, &lock);
-        env.events().publish(
-            (Symbol::new(&env, "lp_lock_extended"),),
-            (id, lock.creator.clone(), old_unlock_at, new_unlock_at),
-        );
-        Ok(())
+            save_lock(&env, &lock);
+            env.events().publish(
+                (Symbol::new(&env, "lp_lock_extended"),),
+                (id, lock.creator.clone(), old_unlock_at, new_unlock_at),
+            );
+            Ok(())
+        })();
+        exit_guard(&env);
+        result
     }
 
     /// Transfer the beneficiary role to a new address. Current beneficiary only.
     pub fn transfer_beneficiary(env: Env, id: u64, new_beneficiary: Address) -> Result<(), ContractError> {
-        let mut lock = load_lock(&env, id);
-        lock.beneficiary.require_auth();
+        enter_guard(&env)?;
+        let result = (|| {
+            let mut lock = load_lock(&env, id);
+            lock.beneficiary.require_auth();
 
-        if lock.withdrawn {
-            return Err(ContractError::AlreadyWithdrawn);
-        }
+            if lock.withdrawn {
+                return Err(ContractError::AlreadyWithdrawn);
+            }
 
-        let old_beneficiary = lock.beneficiary.clone();
-        remove_from_index(&env, DataKey::ByBeneficiary(lock.beneficiary.clone()), id);
-        push_index(&env, DataKey::ByBeneficiary(new_beneficiary.clone()), id, lock.withdrawn);
+            let old_beneficiary = lock.beneficiary.clone();
+            remove_from_index(&env, DataKey::ByBeneficiary(lock.beneficiary.clone()), id);
+            push_index(&env, DataKey::ByBeneficiary(new_beneficiary.clone()), id, lock.withdrawn);
 
-        lock.beneficiary = new_beneficiary.clone();
-        save_lock(&env, &lock);
+            lock.beneficiary = new_beneficiary.clone();
+            save_lock(&env, &lock);
 
-        env.events().publish(
-            (Symbol::new(&env, "lp_beneficiary_transferred"),),
-            (id, old_beneficiary, new_beneficiary),
-        );
-        Ok(())
+            env.events().publish(
+                (Symbol::new(&env, "lp_beneficiary_transferred"),),
+                (id, old_beneficiary, new_beneficiary),
+            );
+            Ok(())
+        })();
+        exit_guard(&env);
+        result
     }
 
     /// Permissionless TTL maintenance — anyone can call this to prevent a lock
