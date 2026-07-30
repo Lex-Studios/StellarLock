@@ -72,7 +72,7 @@ export function NotificationSettings({ lockId, unlockAt, address }: Props) {
           await unsubscribeNotifications(lockId, address)
           update({ email: undefined })
         } catch (err) {
-          setEmailError(err instanceof Error ? err.message : t("notifications.emailError"))
+          setEmailError(t("notifications.emailError"))
         } finally {
           setEmailLoading(false)
         }
@@ -92,7 +92,7 @@ export function NotificationSettings({ lockId, unlockAt, address }: Props) {
       setEmailSaved(true)
       setTimeout(() => setEmailSaved(false), 2000)
     } catch (err) {
-      setEmailError(err instanceof Error ? err.message : t("notifications.emailError"))
+      setEmailError(t("notifications.emailError"))
     } finally {
       setEmailLoading(false)
     }

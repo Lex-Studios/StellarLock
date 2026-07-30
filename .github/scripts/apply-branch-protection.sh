@@ -5,6 +5,12 @@
 # Usage:
 #   gh auth login          # if not already logged in as an admin
 #   bash .github/scripts/apply-branch-protection.sh
+#
+# IMPORTANT: The `contexts` array must match the exact job names from .github/workflows/ci.yml.
+# If you rename, add, or remove CI jobs, update this list accordingly.
+# Current required checks:
+#   - "Frontend Checks" (linting, type checking, unit tests, Storybook build, Vite build)
+#   - "Smart Contract Checks" (Rust build, formatting, tests, Clippy)
 
 set -euo pipefail
 
@@ -20,7 +26,10 @@ gh api "repos/${REPO}/branches/${BRANCH}/protection" \
 {
   "required_status_checks": {
     "strict": true,
-    "contexts": []
+    "contexts": [
+      "Frontend Checks",
+      "Smart Contract Checks"
+    ]
   },
   "enforce_admins": true,
   "required_pull_request_reviews": {

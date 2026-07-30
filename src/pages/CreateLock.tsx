@@ -1,18 +1,21 @@
 import { useState } from "react"
-import { Coins, Droplets } from "lucide-react"
+import { Coins, Droplets, Sparkles } from "lucide-react"
 import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { ConnectGate } from "@/components/layout/ConnectGate"
 import { Card } from "@/components/ui/Card"
 import { CreateTokenLockForm } from "@/components/locks/CreateTokenLockForm"
 import { CreateLpLockForm } from "@/components/locks/CreateLpLockForm"
+import { LockCreationWizard } from "@/components/locks/wizard/LockCreationWizard"
 import { cn } from "@/lib/utils"
 
 type Tab = "token" | "lp"
+type Mode = "simple" | "wizard"
 
 export function CreateLock() {
   const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>("token")
+  const [mode, setMode] = useState<Mode>("simple")
 
   return (
     <div className="mx-auto max-w-xl px-4 py-10">
@@ -29,37 +32,70 @@ export function CreateLock() {
       </div>
 
       <ConnectGate title={t("connectGate.title")}>
-        <div
-          role="tablist"
-          aria-label={t("createLock.title")}
-          className="mb-5 grid grid-cols-2 gap-2 rounded-xl border border-border bg-card p-1"
-        >
-          <TabButton
-            active={tab === "token"}
-            onClick={() => setTab("token")}
-            icon={<Coins className="h-4 w-4" />}
-            controlsId="panel-token"
+        {/* Mode toggle */}
+        <div className="mb-4 flex justify-center gap-2">
+          <button
+            onClick={() => setMode("simple")}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              mode === "simple"
+                ? "bg-primary text-white"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            )}
           >
-            {t("createLock.tabToken")}
-          </TabButton>
-          <TabButton
-            active={tab === "lp"}
-            onClick={() => setTab("lp")}
-            icon={<Droplets className="h-4 w-4" />}
-            controlsId="panel-lp"
+            Simple
+          </button>
+          <button
+            onClick={() => setMode("wizard")}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              mode === "wizard"
+                ? "bg-primary text-white"
+                : "bg-secondary text-muted-foreground hover:text-foreground"
+            )}
           >
-            {t("createLock.tabLp")}
-          </TabButton>
+            <Sparkles className="h-3.5 w-3.5" />
+            Wizard
+          </button>
         </div>
 
-        <Card
-          className="p-6"
-          role="tabpanel"
-          id={`panel-${tab}`}
-          aria-label={tab === "token" ? t("createLock.tabToken") : t("createLock.tabLp")}
-        >
-          {tab === "token" ? <CreateTokenLockForm /> : <CreateLpLockForm />}
-        </Card>
+        {mode === "wizard" ? (
+          <LockCreationWizard />
+        ) : (
+          <>
+            <div
+              role="tablist"
+              aria-label={t("createLock.title")}
+              className="mb-5 grid grid-cols-2 gap-2 rounded-xl border border-border bg-card p-1"
+            >
+              <TabButton
+                active={tab === "token"}
+                onClick={() => setTab("token")}
+                icon={<Coins className="h-4 w-4" />}
+                controlsId="panel-token"
+              >
+                {t("createLock.tabToken")}
+              </TabButton>
+              <TabButton
+                active={tab === "lp"}
+                onClick={() => setTab("lp")}
+                icon={<Droplets className="h-4 w-4" />}
+                controlsId="panel-lp"
+              >
+                {t("createLock.tabLp")}
+              </TabButton>
+            </div>
+
+            <Card
+              className="p-6"
+              role="tabpanel"
+              id={`panel-${tab}`}
+              aria-label={tab === "token" ? t("createLock.tabToken") : t("createLock.tabLp")}
+            >
+              {tab === "token" ? <CreateTokenLockForm /> : <CreateLpLockForm />}
+            </Card>
+          </>
+        )}
       </ConnectGate>
     </div>
   )
