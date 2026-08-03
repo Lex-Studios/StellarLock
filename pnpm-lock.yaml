@@ -131,6 +131,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^6.0.2
         version: 6.0.3(vite@8.1.0(@types/node@24.13.2)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.0))
+      '@vitest/ui':
+        specifier: ^3.2.6
+        version: 3.2.7(vitest@3.2.7)
       conventional-changelog-cli:
         specifier: ^5
         version: 5.0.0(conventional-commits-filter@5.0.0)
@@ -175,10 +178,10 @@ importers:
         version: 8.1.0(@types/node@24.13.2)(esbuild@0.25.12)(jiti@2.7.0)(yaml@2.9.0)
       vitest:
         specifier: ^3.2.6
-        version: 3.2.7(@types/node@24.13.2)(esbuild@0.25.12)(jiti@2.7.0)(jsdom@30.0.0(@noble/hashes@2.2.0))(yaml@2.9.0)
+        version: 3.2.7(@types/node@24.13.2)(@vitest/ui@3.2.7)(esbuild@0.25.12)(jiti@2.7.0)(jsdom@30.0.0(@noble/hashes@2.2.0))(yaml@2.9.0)
       vitest-axe:
         specifier: ^0.1.0
-        version: 0.1.0(vitest@3.2.7(@types/node@24.13.2)(esbuild@0.25.12)(jiti@2.7.0)(jsdom@30.0.0(@noble/hashes@2.2.0))(yaml@2.9.0))
+        version: 0.1.0(vitest@3.2.7)
 
 packages:
 
@@ -870,6 +873,9 @@ packages:
     resolution: {integrity: sha512-8nKv6+0RJSL9FE4jYOEGXnPeM/Hg12qZpmqzZjRh3qM0Y7c3z1mrOTfFLids72RDQYVh9WpLEfR5WdpNX4fkig==}
     engines: {node: '>=18'}
     hasBin: true
+
+  '@polka/url@1.0.0-next.29':
+    resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
 
   '@protobufjs/aspromise@1.1.2':
     resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
@@ -2182,6 +2188,11 @@ packages:
 
   '@vitest/spy@3.2.7':
     resolution: {integrity: sha512-Q2eQGI6d2L/hBtZ0qNuKcAGid68XK6cv1xsoaIma6PaJhHPoqcEJhYpXZ/5myCMqkNgtP6UKuBhbc0nHKnrkuQ==}
+
+  '@vitest/ui@3.2.7':
+    resolution: {integrity: sha512-eVtcpJXGhS0GjMuHROfbXLhlxooyUcuip8GNzzjDD5jzafZqzanJH4W3VGmUxHNx4fv6qQGUGJHRpGUdj+9D6Q==}
+    peerDependencies:
+      vitest: ^3.2.6
 
   '@vitest/utils@2.0.5':
     resolution: {integrity: sha512-d8HKbqIcya+GR67mkZbrzhS5kKhtp8dQLcmRZLGTscGVg7yImT82cIrhtn2L8+VujWcy6KZweApgNmPsTAO/UQ==}
@@ -4114,6 +4125,10 @@ packages:
   motion@10.16.2:
     resolution: {integrity: sha512-p+PurYqfUdcJZvtnmAqu5fJgV2kR0uLFQuBKtLeFVTrYEVllI99tiOTSefVNYuip9ELTEkepIIDftNdze76NAQ==}
 
+  mrmime@2.0.1:
+    resolution: {integrity: sha512-Y3wQdFg2Va6etvQ5I82yUhGdsKrcYox6p7FfL1LbK2J4V01F9TGlepTIhnK24t7koZibmg82KGglhA1XK5IsLQ==}
+    engines: {node: '>=10'}
+
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
@@ -4785,6 +4800,10 @@ packages:
   simple-get@4.0.1:
     resolution: {integrity: sha512-brv7p5WgH0jmQJr1ZDDfKDOSeWWg+OVypG99A/5vYGPqJ6pxiaHLy8nxtFjBA7oMa01ebA9gfh1uMCFqOuXxvA==}
 
+  sirv@3.0.2:
+    resolution: {integrity: sha512-2wcC/oGxHis/BoHkkPwldgiPSYcpZK3JU28WoMVv55yHJgcZ8rlXvuG9iZggz+sU1d4bRgIGASwyWqjxu3FM0g==}
+    engines: {node: '>=18'}
+
   slice-ansi@5.0.0:
     resolution: {integrity: sha512-FC+lgizVPfie0kkhqUScwRu1O/lF6NOgJmlCgK+/LYxDCTk8sGelYaHDhFcDN+Sn3Cv+3VSa4Byeo+IMCzpMgQ==}
     engines: {node: '>=12'}
@@ -5061,6 +5080,10 @@ packages:
 
   toml@3.0.0:
     resolution: {integrity: sha512-y/mWCZinnvxjTKYhJ+pYxwD0mRLVvOtdS2Awbgxln6iEnt4rk0yBxeSBHkGJcPucRiG0e55mwWp+g/05rsrd6w==}
+
+  totalist@3.0.1:
+    resolution: {integrity: sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ==}
+    engines: {node: '>=6'}
 
   tough-cookie@6.0.2:
     resolution: {integrity: sha512-exgYmnmL/sJpR3upZfXG5PoatXQii55xAiXGXzY+sROLZ/Y+SLcp9PgJNI9Vz37HpQ74WvDcLT8eqm+kV3FzrA==}
@@ -6405,6 +6428,8 @@ snapshots:
   '@playwright/test@1.61.1':
     dependencies:
       playwright: 1.61.1
+
+  '@polka/url@1.0.0-next.29': {}
 
   '@protobufjs/aspromise@1.1.2': {}
 
@@ -8035,6 +8060,17 @@ snapshots:
   '@vitest/spy@3.2.7':
     dependencies:
       tinyspy: 4.0.4
+
+  '@vitest/ui@3.2.7(vitest@3.2.7)':
+    dependencies:
+      '@vitest/utils': 3.2.7
+      fflate: 0.8.3
+      flatted: 3.4.4
+      pathe: 2.0.3
+      sirv: 3.0.2
+      tinyglobby: 0.2.17
+      tinyrainbow: 2.0.0
+      vitest: 3.2.7(@types/node@24.13.2)(@vitest/ui@3.2.7)(esbuild@0.25.12)(jiti@2.7.0)(jsdom@30.0.0(@noble/hashes@2.2.0))(yaml@2.9.0)
 
   '@vitest/utils@2.0.5':
     dependencies:
@@ -10199,6 +10235,8 @@ snapshots:
       '@motionone/utils': 10.18.0
       '@motionone/vue': 10.16.4
 
+  mrmime@2.0.1: {}
+
   ms@2.1.3: {}
 
   multiformats@9.9.0: {}
@@ -10973,6 +11011,12 @@ snapshots:
       once: 1.4.0
       simple-concat: 1.0.1
 
+  sirv@3.0.2:
+    dependencies:
+      '@polka/url': 1.0.0-next.29
+      mrmime: 2.0.1
+      totalist: 3.0.1
+
   slice-ansi@5.0.0:
     dependencies:
       ansi-styles: 6.2.3
@@ -11230,6 +11274,8 @@ snapshots:
 
   toml@3.0.0: {}
 
+  totalist@3.0.1: {}
+
   tough-cookie@6.0.2:
     dependencies:
       tldts: 7.4.9
@@ -11466,7 +11512,7 @@ snapshots:
       jiti: 2.7.0
       yaml: 2.9.0
 
-  vitest-axe@0.1.0(vitest@3.2.7(@types/node@24.13.2)(esbuild@0.25.12)(jiti@2.7.0)(jsdom@30.0.0(@noble/hashes@2.2.0))(yaml@2.9.0)):
+  vitest-axe@0.1.0(vitest@3.2.7):
     dependencies:
       aria-query: 5.3.2
       axe-core: 4.12.1
@@ -11474,9 +11520,9 @@ snapshots:
       dom-accessibility-api: 0.5.16
       lodash-es: 4.18.1
       redent: 3.0.0
-      vitest: 3.2.7(@types/node@24.13.2)(esbuild@0.25.12)(jiti@2.7.0)(jsdom@30.0.0(@noble/hashes@2.2.0))(yaml@2.9.0)
+      vitest: 3.2.7(@types/node@24.13.2)(@vitest/ui@3.2.7)(esbuild@0.25.12)(jiti@2.7.0)(jsdom@30.0.0(@noble/hashes@2.2.0))(yaml@2.9.0)
 
-  vitest@3.2.7(@types/node@24.13.2)(esbuild@0.25.12)(jiti@2.7.0)(jsdom@30.0.0(@noble/hashes@2.2.0))(yaml@2.9.0):
+  vitest@3.2.7(@types/node@24.13.2)(@vitest/ui@3.2.7)(esbuild@0.25.12)(jiti@2.7.0)(jsdom@30.0.0(@noble/hashes@2.2.0))(yaml@2.9.0):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.7
@@ -11503,6 +11549,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 24.13.2
+      '@vitest/ui': 3.2.7(vitest@3.2.7)
       jsdom: 30.0.0(@noble/hashes@2.2.0)
     transitivePeerDependencies:
       - '@vitejs/devtools'
