@@ -383,6 +383,64 @@ fn global_stats_counts_unique_tokens() {
     assert_eq!(stats.unique_token_count, 2);
 }
 
+// ── create_lock TVL overflow guard (#490) ────────────────────────────────────
+
+/// The TVL accumulator `current_tvl + amount` overflows i128 when the existing
+/// per-token TVL is already near i128::MAX.  The contract must return
+/// `ContractError::AmountOverflow` instead of trapping.
+#[test]
+fn create_lock_returns_typed_error_on_tvl_overflow() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+
+    // Seed the per-token TVL so that adding any positive amount overflows i128.
+    env.as_contract(&contract_id, || {
+        env.storage()
+            .persistent()
+            .set(&crate::DataKey::TotalLocked(token_id.clone()), &(i128::MAX - 1));
+    });
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    let result = client.try_create_lock(
+        &creator, &token_id, &100_i128, &beneficiary, &unlock_at, &None, &empty_metadata(&env),
+    );
+
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::AmountOverflow)),
+        "expected AmountOverflow typed error, not a panic"
+    );
+}
+
+/// Complement: a TVL addition that lands exactly on i128::MAX must succeed and
+/// persist the new TVL.
+#[test]
+fn create_lock_near_overflow_boundary_succeeds() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+
+    env.as_contract(&contract_id, || {
+        env.storage()
+            .persistent()
+            .set(&crate::DataKey::TotalLocked(token_id.clone()), &(i128::MAX - 100));
+    });
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    client
+        .create_lock(&creator, &token_id, &100_i128, &beneficiary, &unlock_at, &None, &empty_metadata(&env))
+        .expect("create_lock at safe boundary should succeed");
+
+    assert_eq!(client.get_total_locked(&token_id), i128::MAX);
+}
+
 // ── Vesting ───────────────────────────────────────────────────────────────────
 
 #[test]

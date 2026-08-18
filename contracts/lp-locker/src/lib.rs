@@ -59,6 +59,7 @@ pub enum ContractError {
     NoPendingAdmin       = 7,
     NotPendingAdmin      = 8,
     ReentrancyDetected   = 9,
+    AmountOverflow       = 10,
 }
 
 // ── On-chain types ────────────────────────────────────────────────────────────
@@ -270,11 +271,14 @@ impl LpLocker {
 
         // Update per-pool-share TVL and global stats
         let current_tvl: i128 = env.storage().persistent().get(&DataKey::TotalLocked(lock.pool_share.clone())).unwrap_or(0);
+        let new_tvl = current_tvl
+            .checked_add(amount)
+            .ok_or(ContractError::AmountOverflow)?;
         if current_tvl == 0 {
             let unique_count: u64 = env.storage().persistent().get(&DataKey::UniquePoolShareCount).unwrap_or(0);
             env.storage().persistent().set(&DataKey::UniquePoolShareCount, &(unique_count + 1));
         }
-        env.storage().persistent().set(&DataKey::TotalLocked(lock.pool_share.clone()), &(current_tvl + amount));
+        env.storage().persistent().set(&DataKey::TotalLocked(lock.pool_share.clone()), &new_tvl);
         let lock_count: u64 = env.storage().persistent().get(&DataKey::GlobalLockCount).unwrap_or(0);
         env.storage().persistent().set(&DataKey::GlobalLockCount, &(lock_count + 1));
 
