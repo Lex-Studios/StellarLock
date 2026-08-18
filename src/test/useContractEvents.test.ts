@@ -93,6 +93,30 @@ describe("useContractEvents", () => {
     expect(result.current.events).toEqual([])
   })
 
+  it("extracts the real lock id from topic[1] for lp-locker withdraw/extend/transfer events", async () => {
+    const fetchMock = vi.fn(() =>
+      jsonResponse({
+        result: {
+          events: [
+            { id: "101", ledger: 1, topic: ["lp_lock_withdrawn", "5001"] },
+            { id: "102", ledger: 2, topic: ["lp_lock_extended", "5002"] },
+            { id: "103", ledger: 3, topic: ["lp_beneficiary_transferred", "5003"] },
+          ],
+        },
+      }),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const { result } = renderHook(() => useContractEvents({ contractAddress: "CCONTRACT" }))
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+
+    const lockIds = result.current.events.map((e) => e.lockId)
+    expect(lockIds).toEqual(["5003", "5002", "5001"])
+  })
+
   it("prepends new events so the most recent event is first", async () => {
     let call = 0
     const fetchMock = vi.fn(() => {
