@@ -60,6 +60,7 @@ pub enum ContractError {
     NotPendingAdmin      = 8,
     ReentrancyDetected   = 9,
     AmountOverflow       = 10,
+    LockNotFound         = 11,
 }
 
 // ── On-chain types ────────────────────────────────────────────────────────────
@@ -163,11 +164,11 @@ fn get_index(env: &Env, key: DataKey) -> Vec<u64> {
     env.storage().persistent().get(&key).unwrap_or(vec![env])
 }
 
-fn load_lock(env: &Env, id: u64) -> LpLock {
+fn load_lock(env: &Env, id: u64) -> Result<LpLock, ContractError> {
     env.storage()
         .persistent()
         .get(&DataKey::Lock(id))
-        .expect("lock not found")
+        .ok_or(ContractError::LockNotFound)
 }
 
 fn save_lock(env: &Env, lock: &LpLock) {
@@ -301,7 +302,7 @@ impl LpLocker {
     pub fn withdraw(env: Env, id: u64) -> Result<(), ContractError> {
         enter_guard(&env)?;
         let result = (|| {
-            let mut lock = load_lock(&env, id);
+            let mut lock = load_lock(&env, id)?;
             lock.beneficiary.require_auth();
 
             if lock.withdrawn {
@@ -338,7 +339,7 @@ impl LpLocker {
     pub fn extend(env: Env, id: u64, new_unlock_at: u64) -> Result<(), ContractError> {
         enter_guard(&env)?;
         let result = (|| {
-            let mut lock = load_lock(&env, id);
+            let mut lock = load_lock(&env, id)?;
             lock.creator.require_auth();
 
             if lock.withdrawn {
@@ -367,7 +368,7 @@ impl LpLocker {
     pub fn transfer_beneficiary(env: Env, id: u64, new_beneficiary: Address) -> Result<(), ContractError> {
         enter_guard(&env)?;
         let result = (|| {
-            let mut lock = load_lock(&env, id);
+            let mut lock = load_lock(&env, id)?;
             lock.beneficiary.require_auth();
 
             if lock.withdrawn {

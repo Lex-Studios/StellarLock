@@ -76,6 +76,7 @@ pub enum ContractError {
     NoPendingAdmin = 13,
     NotPendingAdmin = 14,
     ReentrancyDetected = 16,
+    LockNotFound = 17,
 }
 
 // ── On-chain types ────────────────────────────────────────────────────────────
@@ -193,11 +194,11 @@ fn get_index(env: &Env, key: DataKey) -> Vec<u64> {
     env.storage().persistent().get(&key).unwrap_or(vec![env])
 }
 
-fn load_lock(env: &Env, id: u64) -> Lock {
+fn load_lock(env: &Env, id: u64) -> Result<Lock, ContractError> {
     env.storage()
         .persistent()
         .get(&DataKey::Lock(id))
-        .expect("lock not found")
+        .ok_or(ContractError::LockNotFound)
 }
 
 fn save_lock(env: &Env, lock: &Lock) {
@@ -333,7 +334,7 @@ impl TokenLocker {
     pub fn withdraw(env: Env, id: u64) -> Result<(), ContractError> {
         enter_guard(&env)?;
         let result = (|| {
-            let mut lock = load_lock(&env, id);
+            let mut lock = load_lock(&env, id)?;
             lock.beneficiary.require_auth();
 
             if lock.withdrawn { return Err(ContractError::AlreadyWithdrawn); }
@@ -371,7 +372,7 @@ impl TokenLocker {
     pub fn extend(env: Env, id: u64, new_unlock_at: u64) -> Result<(), ContractError> {
         enter_guard(&env)?;
         let result = (|| {
-            let mut lock = load_lock(&env, id);
+            let mut lock = load_lock(&env, id)?;
             lock.creator.require_auth();
 
             if lock.withdrawn { return Err(ContractError::AlreadyWithdrawn); }
@@ -392,7 +393,7 @@ impl TokenLocker {
     pub fn transfer_beneficiary(env: Env, id: u64, new_beneficiary: Address) -> Result<(), ContractError> {
         enter_guard(&env)?;
         let result = (|| {
-            let mut lock = load_lock(&env, id);
+            let mut lock = load_lock(&env, id)?;
             lock.beneficiary.require_auth();
 
             if lock.withdrawn { return Err(ContractError::AlreadyWithdrawn); }
