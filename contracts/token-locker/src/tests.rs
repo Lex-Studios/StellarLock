@@ -210,6 +210,50 @@ fn extend_withdrawn_lock_fails() {
     assert_eq!(result, Err(Ok(ContractError::AlreadyWithdrawn)));
 }
 
+// ── LockNotFound (#489) ──────────────────────────────────────────────────────
+// load_lock() must return ContractError::LockNotFound instead of panicking with
+// a bare .expect() when the lock id does not exist.
+
+#[test]
+fn withdraw_on_missing_lock_returns_lock_not_found() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let result = client.try_withdraw(&999_999);
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::LockNotFound)),
+        "expected LockNotFound typed error, not a panic"
+    );
+}
+
+#[test]
+fn extend_on_missing_lock_returns_lock_not_found() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let result = client.try_extend(&999_999, &(env.ledger().timestamp() + 100));
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::LockNotFound)),
+        "expected LockNotFound typed error, not a panic"
+    );
+}
+
+#[test]
+fn transfer_beneficiary_on_missing_lock_returns_lock_not_found() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let new_beneficiary = Address::generate(&env);
+    let result = client.try_transfer_beneficiary(&999_999, &new_beneficiary);
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::LockNotFound)),
+        "expected LockNotFound typed error, not a panic"
+    );
+}
+
 // ── Beneficiary transfer ──────────────────────────────────────────────────────
 
 #[test]
