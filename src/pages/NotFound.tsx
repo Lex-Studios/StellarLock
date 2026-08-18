@@ -43,7 +43,7 @@ export function NotFound() {
           {/* Actions */}
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Link to="/">
-              <Button variant="default" size="lg">
+              <Button variant="primary" size="lg">
                 <Home className="h-4 w-4" />
                 {t("notfound.goHome", "Back to Home")}
               </Button>
