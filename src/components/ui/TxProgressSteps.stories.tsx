@@ -33,7 +33,6 @@ export const Confirming: Story = {
 }
 
 export const Idle: Story = {
-  render: () => (
-    <span className="text-sm italic text-muted-foreground">Nothing rendered when phase is idle.</span>
-  ),
+  args: { phase: "idle" },
+  render: () => <span className="text-sm italic text-muted-foreground">Nothing rendered when phase is idle.</span>,
 }

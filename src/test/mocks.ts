@@ -38,7 +38,7 @@ export const mockLpLock = {
   id: "2",
   kind: "lp" as const,
   dex: "aquarius" as const,
-  poolPair: [VALID_CONTRACT_ADDRESS, "native"],
+  poolPair: [VALID_CONTRACT_ADDRESS, "native"] as [string, string],
 }
 
 export function mockFetch(responses: Record<string, Response>) {
@@ -66,7 +66,8 @@ export const mockRpcResponse = {
   getLedger: () => mockSuccessResponse({ ledger_sequence: 12345 }),
   getBalance: () => mockSuccessResponse({ amount: "1000.0000000" }),
   submitTransaction: () => mockSuccessResponse({ hash: "abc123" }),
-  getContractData: () => mockSuccessResponse({
-    xdr: "AAAAAgo=",
-  }),
+  getContractData: () =>
+    mockSuccessResponse({
+      xdr: "AAAAAgo=",
+    }),
 }

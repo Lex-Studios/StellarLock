@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest"
 import { prefetch } from "@/lib/prefetch"
 
 // Mock dynamic imports to avoid loading actual page components in tests
-vi.mock("@/pages/Landing", () => ({ default: () => null }))
+vi.mock("@/pages/Landing", () => ({ Landing: () => null }))
 vi.mock("@/pages/CreateLock", () => ({ default: () => null }))
 vi.mock("@/pages/MyLocks", () => ({ default: () => null }))
 vi.mock("@/pages/Discover", () => ({ default: () => null }))
@@ -34,10 +34,10 @@ describe("prefetch", () => {
     expect(typeof prefetch.analytics).toBe("function")
   })
 
-  it("should resolve each lazy import to a module with a default export", async () => {
+  it("should resolve each lazy import to a module with a named export", async () => {
     const landingModule = await prefetch.landing()
     expect(landingModule).toBeDefined()
-    expect(landingModule.default).toBeDefined()
+    expect(landingModule.Landing).toBeDefined()
   })
 
   it("should only have the expected six keys", () => {

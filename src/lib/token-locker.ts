@@ -20,7 +20,10 @@ function toLock(raw: Record<string, unknown>, meta?: OnChainTokenMeta): Lock {
   const decimals = meta?.decimals ?? 7
   const multiplier = 10 ** decimals
 
+  // Vesting is stored non-optionally on-chain using a sentinel schedule
+  // (start == 0 && end == 0) to mean "no vesting".
   const vestingRaw = raw.vesting as { start: bigint; end: bigint; released: bigint } | null | undefined
+  const hasVesting = vestingRaw != null && !(Number(vestingRaw.start) === 0 && Number(vestingRaw.end) === 0)
   const metadata = parseMetadata(raw.metadata)
 
   return {
@@ -40,7 +43,7 @@ function toLock(raw: Record<string, unknown>, meta?: OnChainTokenMeta): Lock {
     createdAt: Number(raw.created_at) * 1000,
     unlockAt: Number(raw.unlock_at) * 1000,
     extendedCount: Number(raw.extended_count),
-    vesting: vestingRaw
+    vesting: hasVesting
       ? {
           start: Number(vestingRaw.start) * 1000,
           end: Number(vestingRaw.end) * 1000,

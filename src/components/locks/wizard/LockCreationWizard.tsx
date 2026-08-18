@@ -1,15 +1,14 @@
-import { useState, useEffect, type FormEvent } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Coins, Droplets, ArrowLeft, ArrowRight, Check } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
-import { cn, isValidStellarContractAddress, isValidStellarAddress } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { Input, Label } from "@/components/ui/Input"
 import { useWallet } from "@/hooks/useWallet"
 import { useTokenBalanceSWR } from "@/hooks/useTokenBalanceSWR"
-import { useTokenAllowance } from "@/hooks/useLocks"
-import { CONTRACTS } from "@/lib/stellar"
+import { isValidStellarContractAddress, isValidStellarAddress } from "@/lib/stellar"
 import { createTokenLock } from "@/lib/token-locker"
 import { createLpLock } from "@/lib/lp-locker"
 import { sanitizeError } from "@/lib/error-sanitizer"
@@ -73,18 +72,20 @@ export function LockCreationWizard() {
   const [currentStep, setCurrentStep] = useState(1)
   const [state, setState] = useState<WizardState>(() => {
     const saved = loadState()
-    return saved || {
-      lockType: "token",
-      tokenAddress: "",
-      poolShareAddress: "",
-      dex: "aquarius",
-      tokenA: "",
-      tokenB: "",
-      amount: "",
-      beneficiary: "",
-      unlockDate: "",
-      vesting: false,
-    }
+    return (
+      saved || {
+        lockType: "token",
+        tokenAddress: "",
+        poolShareAddress: "",
+        dex: "aquarius",
+        tokenA: "",
+        tokenB: "",
+        amount: "",
+        beneficiary: "",
+        unlockDate: "",
+        vesting: false,
+      }
+    )
   })
   const [submitting, setSubmitting] = useState(false)
   const [txPhase, setTxPhase] = useState<TxPhase | "idle">("idle")
@@ -118,12 +119,14 @@ export function LockCreationWizard() {
             amount: Number(state.amount),
             beneficiary: state.beneficiary.trim() || address!,
             unlockAt: Math.floor(new Date(state.unlockDate).getTime() / 1000),
-            vesting: state.vesting ? { start: Math.floor(Date.now() / 1000), end: Math.floor(new Date(state.unlockDate).getTime() / 1000) } : undefined,
+            vesting: state.vesting
+              ? { start: Math.floor(Date.now() / 1000), end: Math.floor(new Date(state.unlockDate).getTime() / 1000) }
+              : undefined,
             metadata: {},
           },
           address!,
           signTransaction,
-          setTxPhase
+          setTxPhase,
         )
       } else {
         await createLpLock(
@@ -139,7 +142,7 @@ export function LockCreationWizard() {
           },
           address!,
           signTransaction,
-          setTxPhase
+          setTxPhase,
         )
       }
       clearState()
@@ -181,7 +184,7 @@ export function LockCreationWizard() {
                 "flex h-10 w-10 items-center justify-center rounded-full border-2 font-semibold transition-colors",
                 currentStep >= step
                   ? "border-primary bg-primary text-white"
-                  : "border-border bg-background text-muted-foreground"
+                  : "border-border bg-background text-muted-foreground",
               )}
             >
               {currentStep > step ? <Check className="h-5 w-5" /> : step}
@@ -190,7 +193,7 @@ export function LockCreationWizard() {
               <div
                 className={cn(
                   "mx-2 h-1 flex-1 rounded transition-colors",
-                  currentStep > step ? "bg-primary" : "bg-border"
+                  currentStep > step ? "bg-primary" : "bg-border",
                 )}
               />
             )}
@@ -238,13 +241,7 @@ export function LockCreationWizard() {
 }
 
 // Step 1: Select Lock Type
-function Step1({
-  state,
-  updateState,
-}: {
-  state: WizardState
-  updateState: (updates: Partial<WizardState>) => void
-}) {
+function Step1({ state, updateState }: { state: WizardState; updateState: (updates: Partial<WizardState>) => void }) {
   return (
     <div>
       <h2 className="mb-4 text-lg font-semibold">Select Lock Type</h2>
@@ -254,9 +251,7 @@ function Step1({
           onClick={() => updateState({ lockType: "token" })}
           className={cn(
             "flex flex-col items-center gap-3 rounded-lg border-2 p-6 transition-colors",
-            state.lockType === "token"
-              ? "border-primary bg-primary/10"
-              : "border-border hover:border-primary/40"
+            state.lockType === "token" ? "border-primary bg-primary/10" : "border-border hover:border-primary/40",
           )}
         >
           <Coins className="h-8 w-8" />
@@ -267,7 +262,7 @@ function Step1({
           onClick={() => updateState({ lockType: "lp" })}
           className={cn(
             "flex flex-col items-center gap-3 rounded-lg border-2 p-6 transition-colors",
-            state.lockType === "lp" ? "border-primary bg-primary/10" : "border-border hover:border-primary/40"
+            state.lockType === "lp" ? "border-primary bg-primary/10" : "border-border hover:border-primary/40",
           )}
         >
           <Droplets className="h-8 w-8" />
@@ -279,15 +274,11 @@ function Step1({
 }
 
 // Step 2: Token/Pool Selection
-function Step2({
-  state,
-  updateState,
-}: {
-  state: WizardState
-  updateState: (updates: Partial<WizardState>) => void
-}) {
+function Step2({ state, updateState }: { state: WizardState; updateState: (updates: Partial<WizardState>) => void }) {
   const { address } = useWallet()
-  const validTokenAddress = isValidStellarContractAddress(state.tokenAddress.trim()) ? state.tokenAddress.trim() : undefined
+  const validTokenAddress = isValidStellarContractAddress(state.tokenAddress.trim())
+    ? state.tokenAddress.trim()
+    : undefined
   const { balance: balanceStroops } = useTokenBalanceSWR(validTokenAddress, address ?? null)
   const balance = balanceStroops !== null ? Number(balanceStroops) / 1e7 : null
 
@@ -367,13 +358,7 @@ function Step2({
 }
 
 // Step 3: Lock Parameters
-function Step3({
-  state,
-  updateState,
-}: {
-  state: WizardState
-  updateState: (updates: Partial<WizardState>) => void
-}) {
+function Step3({ state, updateState }: { state: WizardState; updateState: (updates: Partial<WizardState>) => void }) {
   const { address } = useWallet()
   const minDate = new Date(Date.now() + DAY).toISOString().slice(0, 10)
 

@@ -81,7 +81,6 @@ import {
   mapIndexerLocks,
   mapIndexerLocksPageToSummary,
 } from "@/lib/indexer-client"
-import { getOnChainTokenMeta } from "@/lib/token-metadata"
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -222,9 +221,7 @@ describe("useLocksByToken", () => {
   it("uses indexer data when available", async () => {
     const indexerPage = {
       total: 1,
-      offset: 0,
-      limit: 50,
-      locks: [mockLock],
+      locks: [],
     }
     vi.mocked(fetchIndexerLocksForToken).mockResolvedValue(indexerPage)
     vi.mocked(mapIndexerLocksPageToSummary).mockResolvedValue(mockTokenSummary)
@@ -271,8 +268,6 @@ describe("useLockCountByToken", () => {
   it("returns the indexer total when available", async () => {
     vi.mocked(fetchIndexerLocksForToken).mockResolvedValue({
       total: 42,
-      offset: 0,
-      limit: 1,
       locks: [],
     })
 
@@ -456,6 +451,7 @@ describe("useDiscoverStats", () => {
   it("returns indexer-sourced stats when indexer is available", async () => {
     const mockStats = {
       totalLocks: 100,
+      totalValue: "0",
       uniqueTokens: 5,
       topTokens: [],
       recentLocks: [],
