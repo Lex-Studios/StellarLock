@@ -83,11 +83,11 @@ export function NotificationCenter() {
               <div className="px-4 py-8 text-center text-sm text-muted-foreground">No notifications yet</div>
             ) : (
               notifications.map((notif) => (
-                <div
+                <button
                   key={notif.id}
                   onClick={() => handleNotificationClick(notif)}
                   className={cn(
-                    "flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors hover:bg-secondary/30",
+                    "flex w-full cursor-pointer items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/30",
                     notif.read ? "opacity-60" : "bg-primary/5",
                   )}
                 >
@@ -105,7 +105,7 @@ export function NotificationCenter() {
                       <Check className="h-4 w-4 text-primary" />
                     </div>
                   )}
-                </div>
+                </button>
               ))
             )}
           </div>
