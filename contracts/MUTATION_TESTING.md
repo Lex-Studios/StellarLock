@@ -27,16 +27,20 @@ cargo mutants --version
 
 ### Token Locker
 
+`cargo mutants` detects the `contracts/` workspace root and writes
+`mutants.out` there by default even when invoked from a member directory;
+pass `--output .` to keep it next to the crate you're testing.
+
 ```bash
 cd contracts/token-locker
-cargo mutants --timeout 120 --jobs 4 2>&1 | tee mutation-results-token-locker.txt
+cargo mutants --timeout 120 --jobs 4 --output . 2>&1 | tee mutation-results-token-locker.txt
 ```
 
 ### LP Locker
 
 ```bash
 cd contracts/lp-locker
-cargo mutants --timeout 120 --jobs 4 2>&1 | tee mutation-results-lp-locker.txt
+cargo mutants --timeout 120 --jobs 4 --output . 2>&1 | tee mutation-results-lp-locker.txt
 ```
 
 ### Both contracts from workspace root

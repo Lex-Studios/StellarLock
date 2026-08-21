@@ -39,12 +39,16 @@ jobs:
         run: cargo install cargo-mutants --locked
 
       # `.cargo-mutants.toml` in this directory configures excludes/timeout
-      # multiplier. cargo-mutants has no built-in "fail above N% survivors"
-      # flag, so the threshold from contracts/MUTATION_TESTING.md is enforced
-      # by the "Enforce mutation survival threshold" step below instead of
+      # multiplier. cargo-mutants detects the contracts/ workspace root and
+      # writes mutants.out there by default even when invoked from this
+      # subdirectory, so `--output .` pins it to contracts/token-locker/
+      # where the steps below (and the upload-artifact path) expect it.
+      # cargo-mutants also has no built-in "fail above N% survivors" flag,
+      # so the threshold from contracts/MUTATION_TESTING.md is enforced by
+      # the "Enforce mutation survival threshold" step below instead of
       # relying on this command's own exit code.
       - name: Run cargo mutants
-        run: cargo mutants --timeout 120 || true
+        run: cargo mutants --timeout 120 --output . || true
 
       - name: Enforce mutation survival threshold
         run: |
