@@ -28,7 +28,7 @@ export function WalletAlerts() {
             <p className="font-medium">{t("wallet.disconnected")}</p>
             <p className="text-xs opacity-90">{t("wallet.disconnectedDesc")}</p>
           </div>
-          <button onClick={dismissDisconnectAlert} className="shrink-0 hover:opacity-80" aria-label={t("common.back")}>
+          <button onClick={dismissDisconnectAlert} className="shrink-0 hover:opacity-80" aria-label={t("common.dismiss")}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -41,7 +41,7 @@ export function WalletAlerts() {
             <p className="font-medium">{t("wallet.networkChanged")}</p>
             <p className="text-xs opacity-90">{t("wallet.networkChangedDesc")}</p>
           </div>
-          <button onClick={dismissNetworkAlert} className="shrink-0 hover:opacity-80" aria-label={t("common.back")}>
+          <button onClick={dismissNetworkAlert} className="shrink-0 hover:opacity-80" aria-label={t("common.dismiss")}>
             <X className="h-4 w-4" />
           </button>
         </div>
