@@ -629,6 +629,13 @@ impl TokenLocker {
         if unlock_at <= now {
             return Err(ContractError::UnlockMustBeFuture);
         }
+
+        let rate_key = DataKey::LastLockAt(creator.clone());
+        let last_at: u64 = env.storage().temporary().get(&rate_key).unwrap_or(0);
+        if now.saturating_sub(last_at) < RATE_LIMIT_COOLDOWN {
+            return Err(ContractError::RateLimitExceeded);
+        }
+
         if let Some(ref v) = vesting {
             if v.end <= v.start {
                 return Err(ContractError::VestingEndBeforeStart);
@@ -708,6 +715,13 @@ impl TokenLocker {
             DataKey::SplitByCreator(creator.clone()),
             group_id,
             false,
+        );
+
+        env.storage().temporary().set(&rate_key, &now);
+        env.storage().temporary().extend_ttl(
+            &rate_key,
+            RATE_LIMIT_TTL_LEDGERS,
+            RATE_LIMIT_TTL_LEDGERS,
         );
 
         env.events().publish(
