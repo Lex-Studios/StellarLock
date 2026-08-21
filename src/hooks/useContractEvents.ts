@@ -36,6 +36,7 @@ export function useContractEvents(options: EventPollingOptions = {}) {
   const [events, setEvents] = useState<ContractEvent[]>([])
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastSequenceRef = useRef<number>(0)
+  const emittedEventIdsRef = useRef<Set<string>>(new Set())
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -90,6 +91,10 @@ export function useContractEvents(options: EventPollingOptions = {}) {
         ) {
           continue
         }
+
+        const eventId = event.id ?? `${event.ledger ?? 0}:${eventType}:${event.topic[1] ?? ""}`
+        if (emittedEventIdsRef.current.has(eventId)) continue
+        emittedEventIdsRef.current.add(eventId)
 
         const contractEvent: ContractEvent = {
           type: eventType as ContractEvent["type"],
