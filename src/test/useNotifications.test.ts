@@ -8,8 +8,12 @@ import {
   sendWebhook,
   subscribeNotifications,
   unsubscribeNotifications,
-  type Notification,
 } from "@/hooks/useNotifications"
+
+type GlobalWithNotification = Omit<typeof globalThis, "Notification"> & {
+  Notification?: typeof Notification
+}
+const globalWithNotification = globalThis as GlobalWithNotification
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -102,10 +106,8 @@ describe("useBrowserNotifications", () => {
   })
 
   it("returns 'denied' when Notification is not defined", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const saved = (global as any).Notification
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (global as any).Notification
+    const saved = globalWithNotification.Notification
+    delete globalWithNotification.Notification
 
     const { result } = renderHook(() => useBrowserNotifications())
     expect(result.current.permission).toBe("denied")
@@ -113,8 +115,7 @@ describe("useBrowserNotifications", () => {
     const returned = await act(async () => result.current.requestPermission())
     expect(returned).toBe("denied")
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(global as any).Notification = saved
+    globalWithNotification.Notification = saved
   })
 })
 
@@ -264,10 +265,7 @@ describe("scheduleUnlockReminder", () => {
       configurable: true,
     })
 
-    localStorage.setItem(
-      "stellarlock:notification_prefs",
-      JSON.stringify({ global: { browser: false, types: {} } }),
-    )
+    localStorage.setItem("stellarlock:notification_prefs", JSON.stringify({ global: { browser: false, types: {} } }))
 
     const setTimeoutSpy = vi.spyOn(global, "setTimeout")
     scheduleUnlockReminder(LOCK_ID, UNLOCK_AT)
