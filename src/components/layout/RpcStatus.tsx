@@ -29,6 +29,8 @@ export function RpcStatusBanner() {
 
   return (
     <div
+      role="status"
+      aria-live="polite"
       className={`border-b px-4 py-3 text-sm ${
         status === 'disconnected'
           ? 'border-destructive/20 bg-destructive/5 text-destructive'
