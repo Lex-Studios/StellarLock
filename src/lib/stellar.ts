@@ -16,21 +16,17 @@ import { createLogger } from "@/lib/logger"
 
 const log = createLogger("stellar")
 
-const envNetwork = ((import.meta.env.VITE_NETWORK as string | undefined) || "testnet").toLowerCase()
+const envNetwork = (import.meta.env.VITE_NETWORK || "testnet").toLowerCase()
 const isMainnet = envNetwork === "mainnet" || envNetwork === "public"
 
-const defaultRpcUrl = isMainnet
-  ? "https://soroban-mainnet.stellar.org"
-  : "https://soroban-testnet.stellar.org"
-const defaultHorizonUrl = isMainnet
-  ? "https://horizon.stellar.org"
-  : "https://horizon-testnet.stellar.org"
+const defaultRpcUrl = isMainnet ? "https://soroban-mainnet.stellar.org" : "https://soroban-testnet.stellar.org"
+const defaultHorizonUrl = isMainnet ? "https://horizon.stellar.org" : "https://horizon-testnet.stellar.org"
 
 export const NETWORK = {
   id: isMainnet ? "mainnet" : "testnet",
   passphrase: isMainnet ? Networks.PUBLIC : Networks.TESTNET,
-  rpcUrl: (import.meta.env.VITE_RPC_URL as string | undefined) || defaultRpcUrl,
-  horizonUrl: (import.meta.env.VITE_HORIZON_URL as string | undefined) || defaultHorizonUrl,
+  rpcUrl: import.meta.env.VITE_RPC_URL || defaultRpcUrl,
+  horizonUrl: import.meta.env.VITE_HORIZON_URL || defaultHorizonUrl,
   networkName: isMainnet ? "public" : "testnet",
   displayName: isMainnet ? "Mainnet" : "Testnet",
 }
@@ -195,7 +191,7 @@ export async function simulateCall<T>(contractId: string, method: string, args: 
   const dummySource = {
     accountId: () => "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
     sequenceNumber: () => "0",
-    incrementSequenceNumber: () => { },
+    incrementSequenceNumber: () => {},
   }
 
   const contract = new Contract(contractId)
@@ -215,7 +211,7 @@ export async function simulateCall<T>(contractId: string, method: string, args: 
     throw new Error(`Simulation error: ${simError(result)}`)
   }
 
-  const retval = (result).result?.retval
+  const retval = result.result?.retval
   if (!retval) return undefined as T
   return scValToNative(retval) as T
 }
@@ -372,9 +368,9 @@ export function isValidStellarAddress(address: string): boolean {
 // ── Cost estimation ───────────────────────────────────────────────────────────
 
 export interface LockCostEstimate {
-  networkFee: number  // in XLM
+  networkFee: number // in XLM
   resourceFee: number // in XLM (storage deposit + compute)
-  total: number       // in XLM
+  total: number // in XLM
 }
 
 export async function estimateLockCost(
@@ -387,7 +383,7 @@ export async function estimateLockCost(
   const dummySource = {
     accountId: () => "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
     sequenceNumber: () => "0",
-    incrementSequenceNumber: () => { },
+    incrementSequenceNumber: () => {},
   }
 
   const contract = new Contract(contractId)
@@ -419,11 +415,7 @@ export async function getTokenBalance(tokenAddress: string, owner: string): Prom
   return Number(raw ?? 0n) / STELLAR_DECIMALS
 }
 
-export async function getTokenAllowance(
-  tokenAddress: string,
-  owner: string,
-  spender: string,
-): Promise<number> {
+export async function getTokenAllowance(tokenAddress: string, owner: string, spender: string): Promise<number> {
   const raw = await simulateCall<bigint>(tokenAddress, "allowance", [
     new Address(owner).toScVal(),
     new Address(spender).toScVal(),

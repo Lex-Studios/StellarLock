@@ -53,7 +53,7 @@ describe("createSplitLock", () => {
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
     const callArgs = vi.mocked(submitCall).mock.calls[0]
-    const scArgs = callArgs[2] as xdr.ScVal[]
+    const scArgs = callArgs[2]
 
     expect(scArgs).toHaveLength(6)
     // scArgs[0] = source address, scArgs[1] = token address, scArgs[2] = amount
@@ -73,7 +73,7 @@ describe("createSplitLock", () => {
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
     const callArgs = vi.mocked(submitCall).mock.calls[0]
-    const scArgs = callArgs[2] as xdr.ScVal[]
+    const scArgs = callArgs[2]
     const beneficiariesVal = scArgs[3]
 
     // Should be a vec of 2 elements
@@ -93,7 +93,7 @@ describe("createSplitLock", () => {
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
     const callArgs = vi.mocked(submitCall).mock.calls[0]
-    const scArgs = callArgs[2] as xdr.ScVal[]
+    const scArgs = callArgs[2]
 
     // 6th arg should be a map (vesting config), not void
     expect(scArgs[5].switch()).toBe(xdr.ScValType.scvMap())
@@ -106,7 +106,7 @@ describe("createSplitLock", () => {
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
     const callArgs = vi.mocked(submitCall).mock.calls[0]
-    const scArgs = callArgs[2] as xdr.ScVal[]
+    const scArgs = callArgs[2]
 
     expect(scArgs[5].switch()).toBe(xdr.ScValType.scvVoid())
   })
@@ -121,13 +121,13 @@ describe("createSplitLock", () => {
 
     expect(submitCall).toHaveBeenCalledTimes(1)
     const callArgs = vi.mocked(submitCall).mock.calls[0]
-    const scArgs = callArgs[2] as xdr.ScVal[]
+    const scArgs = callArgs[2]
     const beneficiariesVal = scArgs[3]
     expect(beneficiariesVal.vec()).toHaveLength(1)
   })
 
   it("should handle many beneficiaries (up to 10)", async () => {
-    const manyBeneficiaries: SplitBeneficiary[] = Array.from({ length: 10 }, (_, i) => ({
+    const manyBeneficiaries: SplitBeneficiary[] = Array.from({ length: 10 }, () => ({
       address: VALID_ADDRESS,
       shareBps: 1000, // 10% each = 100%
     }))
@@ -138,7 +138,7 @@ describe("createSplitLock", () => {
 
     expect(submitCall).toHaveBeenCalledTimes(1)
     const callArgs = vi.mocked(submitCall).mock.calls[0]
-    const scArgs = callArgs[2] as xdr.ScVal[]
+    const scArgs = callArgs[2]
     expect(scArgs[3].vec()).toHaveLength(10)
   })
 
@@ -150,7 +150,7 @@ describe("createSplitLock", () => {
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
     const callArgs = vi.mocked(submitCall).mock.calls[0]
-    const scArgs = callArgs[2] as xdr.ScVal[]
+    const scArgs = callArgs[2]
     const amountVal = scArgs[2]
 
     // Should be i128 with value 10_000_000
@@ -159,6 +159,7 @@ describe("createSplitLock", () => {
     const lo = amountVal.i128().lo()
     // 10_000_000 fits in lo
     expect(lo.toBigInt()).toBe(10_000_000n)
+    expect(hi.toBigInt()).toBe(0n)
   })
 
   it("should pass the signTransaction function to submitCall", async () => {

@@ -63,16 +63,7 @@ pub enum ContractError {
     NotPendingAdmin = 8,
     ReentrancyDetected = 9,
     AmountOverflow = 10,
-    UnlockMustBeFuture   = 2,
-    AlreadyWithdrawn     = 3,
-    StillLocked          = 4,
-    CanOnlyExtend        = 5,
-    NotAdmin             = 6,
-    NoPendingAdmin       = 7,
-    NotPendingAdmin      = 8,
-    ReentrancyDetected   = 9,
-    AmountOverflow       = 10,
-    LockNotFound         = 11,
+    LockNotFound = 11,
 }
 
 // ── On-chain types ────────────────────────────────────────────────────────────
@@ -387,15 +378,12 @@ impl LpLocker {
             lock.withdrawn = true;
             save_lock(&env, &lock);
             env.events().publish(
-                (Symbol::new(&env, "lp_lock_withdrawn"),),
+                (Symbol::new(&env, "lp_lock_withdrawn"), id),
                 (
-                    id,
                     lock.beneficiary.clone(),
                     lock.pool_share.clone(),
                     lock.amount,
                 ),
-                (Symbol::new(&env, "lp_lock_withdrawn"), id),
-                (lock.beneficiary.clone(), lock.pool_share.clone(), lock.amount),
             );
             Ok(())
         })();
