@@ -39,10 +39,32 @@ jobs:
         run: cargo install cargo-mutants --locked
 
       # `.cargo-mutants.toml` in this directory configures excludes/timeout
-      # multiplier; `--error-on-survivors` fails the job if too many mutants
-      # survive, per the threshold documented in contracts/MUTATION_TESTING.md.
+      # multiplier. cargo-mutants has no built-in "fail above N% survivors"
+      # flag, so the threshold from contracts/MUTATION_TESTING.md is enforced
+      # by the "Enforce mutation survival threshold" step below instead of
+      # relying on this command's own exit code.
       - name: Run cargo mutants
-        run: cargo mutants --timeout 120 --error-on-survivors 20
+        run: cargo mutants --timeout 120 || true
+
+      - name: Enforce mutation survival threshold
+        run: |
+          if [ ! -d mutants.out ]; then
+            echo "::error::No mutants.out directory was produced — cargo mutants failed before completing a run."
+            exit 1
+          fi
+          caught=$(grep -c . mutants.out/caught.txt 2>/dev/null || echo 0)
+          missed=$(grep -c . mutants.out/missed.txt 2>/dev/null || echo 0)
+          total=$((caught + missed))
+          if [ "$total" -eq 0 ]; then
+            echo "No scored mutants (caught + missed) to evaluate."
+            exit 0
+          fi
+          # Overall mutation survival rate must stay below 20% (contracts/MUTATION_TESTING.md).
+          if [ "$((missed * 100))" -ge "$((total * 20))" ]; then
+            echo "::error::Mutation survival rate ${missed}/${total} is >= the 20% threshold"
+            exit 1
+          fi
+          echo "Mutation survival rate: ${missed}/${total} (below the 20% threshold)"
 
       - name: Publish mutation testing summary
         if: always()

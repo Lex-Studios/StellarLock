@@ -66,17 +66,14 @@ The following surviving mutants are intentionally accepted with justification:
 
 ## CI Integration
 
-Add to `.github/workflows/ci.yml` when Rust toolchain is available in CI:
-
-```yaml
-- name: Run mutation tests (token-locker)
-  working-directory: contracts/token-locker
-  run: |
-    cargo install cargo-mutants --quiet
-    cargo mutants --timeout 120 --error-on-survivors 20
-```
-
-The `--error-on-survivors N` flag fails the build if more than N% of mutants survive.
+`.github/workflows/mutation-testing.yml` runs `cargo mutants` against
+token-locker on a weekly schedule, on `workflow_dispatch`, and on PRs that
+touch `contracts/token-locker/**`. cargo-mutants has no built-in flag to fail
+the build once more than N% of mutants survive, so the workflow runs
+`cargo mutants` itself with its exit code ignored, then has a separate
+"Enforce mutation survival threshold" step compute `missed / (caught + missed)`
+from `mutants.out/{caught,missed}.txt` and fail the job if that ratio is
+`>= 20%`, matching the acceptance criterion above.
 
 ## Adding Tests to Kill Survivors
 
