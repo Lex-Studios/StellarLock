@@ -141,6 +141,77 @@ describe("useContractEvents", () => {
     expect(result.current.events).toHaveLength(2)
   })
 
+  it("emits an event only once even when repeated polls return it again", async () => {
+    const fetchMock = vi.fn(() =>
+      jsonResponse({
+        result: {
+          events: [
+            {
+              id: "1",
+              ledger: 100,
+              ledgerClosedAt: "2026-01-01T00:00:00Z",
+              topic: ["lock_created", "lock-abc"],
+            },
+          ],
+        },
+      }),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const onEvent = vi.fn()
+    const { result } = renderHook(() =>
+      useContractEvents({ contractAddress: "CCONTRACT", onEvent, pollInterval: 1000 }),
+    )
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(onEvent).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+
+    expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(3)
+    expect(onEvent).toHaveBeenCalledTimes(1)
+    expect(result.current.events).toHaveLength(1)
+  })
+
+  it("still emits new distinct events within the next poll", async () => {
+    let call = 0
+    const firstEvent = { id: "1", ledger: 1, topic: ["lock_created", "first"] }
+      const fetchMock = vi.fn(() => {
+        call += 1
+        const events =
+          call === 1
+            ? [firstEvent]
+            : [firstEvent, { id: "2", ledger: 2, topic: ["lock_withdrawn", "second"] }]
+        return jsonResponse({ result: { events } })
+      })
+    vi.stubGlobal("fetch", fetchMock)
+
+    const onEvent = vi.fn()
+    const { result } = renderHook(() =>
+      useContractEvents({ contractAddress: "CCONTRACT", onEvent, pollInterval: 1000 }),
+    )
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(onEvent).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+
+    expect(onEvent).toHaveBeenCalledTimes(2)
+    expect(result.current.events[0]).toMatchObject({ type: "lock_withdrawn", lockId: "second" })
+    expect(result.current.events).toHaveLength(2)
+  })
+
   it("does not throw and leaves events empty when the response is not ok", async () => {
     vi.stubGlobal("fetch", vi.fn(() => jsonResponse({}, false, 500)))
 

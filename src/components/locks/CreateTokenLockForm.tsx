@@ -71,6 +71,9 @@ export function CreateTokenLockForm() {
 
   const COOLDOWN_SECONDS = 60
   const COOLDOWN_KEY = "stellarlock:last_lock_created_at"
+  // Namespaced per wallet — a global key would leak wallet A's cooldown onto
+  // wallet B after a browser-local wallet switch.
+  const cooldownKey = address ? `${COOLDOWN_KEY}:${address}` : null
 
   useDraftAutoSave("token", {
     tokenAddress,
@@ -80,13 +83,19 @@ export function CreateTokenLockForm() {
   })
 
   useEffect(() => {
-    const stored = localStorage.getItem(COOLDOWN_KEY)
+    if (!cooldownKey) {
+      setCooldownRemaining(0)
+      return
+    }
+    const stored = localStorage.getItem(cooldownKey)
     if (stored) {
       const elapsed = Math.floor((Date.now() - Number(stored)) / 1000)
       const remaining = COOLDOWN_SECONDS - elapsed
-      if (remaining > 0) setCooldownRemaining(remaining)
+      setCooldownRemaining(remaining > 0 ? remaining : 0)
+    } else {
+      setCooldownRemaining(0)
     }
-  }, [])
+  }, [cooldownKey])
 
   useEffect(() => {
     if (cooldownRemaining <= 0) {
@@ -236,7 +245,7 @@ export function CreateTokenLockForm() {
     setTxPhase("simulating")
     try {
       if (multiMode) {
-        await createSplitLock(
+        const { txHash } = await createSplitLock(
           {
             tokenAddress: tokenAddress.trim(),
             totalAmount: Number(amount),
@@ -247,9 +256,10 @@ export function CreateTokenLockForm() {
           address!,
           signTransaction,
         )
+        addTransaction(txHash, "split_lock", { amount: String(amount) })
         trackEvent("lock_create_split", { count: splitBeneficiaries.length, vesting })
         notify.lockCreated()
-        localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
+        localStorage.setItem(cooldownKey!, String(Date.now()))
         setCooldownRemaining(COOLDOWN_SECONDS)
         void navigate("/app/locks")
       } else {
@@ -273,7 +283,7 @@ export function CreateTokenLockForm() {
         addTransaction(txHash, "create_lock", { lockId: id, amount: String(amount) })
         trackEvent("lock_create_token", { vesting })
         notify.lockCreated()
-        localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
+        localStorage.setItem(cooldownKey!, String(Date.now()))
         setCooldownRemaining(COOLDOWN_SECONDS)
         void navigate("/app/lock-created", {
           state: {
@@ -618,8 +628,8 @@ export function CreateTokenLockForm() {
           {cooldownRemaining > 0
             ? `Wait ${cooldownRemaining}s…`
             : multiMode
-            ? t("splitLock.submit")
-            : t("tokenForm.submit")}
+              ? t("splitLock.submit")
+              : t("tokenForm.submit")}
         </Button>
       </form>
 

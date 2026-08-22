@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { BookUser, Plus, Pencil, Trash2, Check, X, Download, Upload, Search } from "lucide-react"
 import { Button } from "@/components/ui/Button"

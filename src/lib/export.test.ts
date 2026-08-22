@@ -30,16 +30,20 @@ const mockLpLock: Lock = {
 }
 
 describe("export utilities", () => {
-  let downloadedContent: string | null = null
   let downloadedFilename: string | null = null
+  // Referencing these as standalone bindings (rather than global.URL.createObjectURL
+  // each time) avoids @typescript-eslint/unbound-method on lib.dom's URL methods.
+  let createObjectURLMock: ReturnType<typeof vi.fn>
+  let revokeObjectURLMock: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
-    downloadedContent = null
     downloadedFilename = null
 
     // Mock URL.createObjectURL and document functions
-    global.URL.createObjectURL = vi.fn(() => "blob:mock-url")
-    global.URL.revokeObjectURL = vi.fn()
+    createObjectURLMock = vi.fn(() => "blob:mock-url")
+    revokeObjectURLMock = vi.fn()
+    global.URL.createObjectURL = createObjectURLMock
+    global.URL.revokeObjectURL = revokeObjectURLMock
 
     const mockLink = document.createElement("a")
     vi.spyOn(document, "createElement").mockImplementation((tagName: string) => {
@@ -52,11 +56,7 @@ describe("export utilities", () => {
           get: () => downloadedFilename,
         })
         Object.defineProperty(link, "href", {
-          set: (value: string) => {
-            if (value.startsWith("blob:")) {
-              downloadedContent = "mock-blob-data"
-            }
-          },
+          set: () => {},
           get: () => "blob:mock-url",
         })
         link.click = vi.fn()
@@ -65,8 +65,8 @@ describe("export utilities", () => {
       return document.createElement(tagName)
     })
 
-    vi.spyOn(document.body, "appendChild").mockImplementation(() => mockLink as any)
-    vi.spyOn(document.body, "removeChild").mockImplementation(() => mockLink as any)
+    vi.spyOn(document.body, "appendChild").mockImplementation(() => mockLink)
+    vi.spyOn(document.body, "removeChild").mockImplementation(() => mockLink)
   })
 
   describe("exportToJSON", () => {
@@ -155,21 +155,21 @@ describe("export utilities", () => {
       const locks = [mockLock]
       exportToCSV(locks, "test.csv")
 
-      expect(global.URL.createObjectURL).toHaveBeenCalled()
+      expect(createObjectURLMock).toHaveBeenCalled()
     })
 
     it("creates blob with correct MIME type for JSON", () => {
       const locks = [mockLock]
       exportToJSON(locks, "test.json")
 
-      expect(global.URL.createObjectURL).toHaveBeenCalled()
+      expect(createObjectURLMock).toHaveBeenCalled()
     })
 
     it("revokes blob URL after download", () => {
       const locks = [mockLock]
       exportToCSV(locks, "test.csv")
 
-      expect(global.URL.revokeObjectURL).toHaveBeenCalledWith("blob:mock-url")
+      expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:mock-url")
     })
   })
 })

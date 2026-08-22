@@ -69,3 +69,47 @@ describe("CreateTokenLockForm Validation Rules", () => {
     expect(submitButton).toBeEnabled()
   })
 })
+
+describe("CreateTokenLockForm lock-creation cooldown", () => {
+  const WALLET_A = VALID_PUBLIC_KEY
+  const WALLET_B = "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB5UY"
+
+  beforeEach(() => {
+    localStorage.clear()
+    mockUseTokenBalance.mockReturnValue({ data: 500, loading: false })
+    mockUseTokenAllowance.mockReturnValue({ data: 0, loading: false })
+  })
+
+  it("does not apply wallet A's cooldown to wallet B", () => {
+    localStorage.setItem(`stellarlock:last_lock_created_at:${WALLET_A}`, String(Date.now()))
+
+    mockUseWallet.mockReturnValue({ address: WALLET_B })
+    render(<CreateTokenLockForm />)
+
+    expect(screen.queryByText(/rate limit/i)).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /lock tokens/i })).not.toHaveTextContent(/wait/i)
+  })
+
+  it("still enforces the cooldown for the wallet that created the lock", () => {
+    localStorage.setItem(`stellarlock:last_lock_created_at:${WALLET_A}`, String(Date.now()))
+
+    mockUseWallet.mockReturnValue({ address: WALLET_A })
+    render(<CreateTokenLockForm />)
+
+    expect(screen.getByText(/rate limit/i)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /wait \d+s/i })).toBeInTheDocument()
+  })
+
+  it("does not carry over a stale cooldown when the connected wallet changes after mount", () => {
+    localStorage.setItem(`stellarlock:last_lock_created_at:${WALLET_A}`, String(Date.now()))
+
+    mockUseWallet.mockReturnValue({ address: WALLET_A })
+    const { rerender } = render(<CreateTokenLockForm />)
+    expect(screen.getByText(/rate limit/i)).toBeInTheDocument()
+
+    mockUseWallet.mockReturnValue({ address: WALLET_B })
+    rerender(<CreateTokenLockForm />)
+
+    expect(screen.queryByText(/rate limit/i)).not.toBeInTheDocument()
+  })
+})
