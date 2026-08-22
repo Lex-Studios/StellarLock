@@ -876,6 +876,138 @@ fn create_split_lock_succeeds_and_allocates_correctly() {
     assert_eq!(lock1.beneficiary, b2);
 }
 
+// ── Rate limiting ──────────────────────────────────────────────────────────────
+// create_split_lock previously never touched DataKey::LastLockAt, so a creator
+// could bypass the cooldown enforced on create_lock by calling create_split_lock
+// back-to-back. Both entry points must share the same per-creator cooldown.
+
+#[test]
+fn create_lock_back_to_back_is_rate_limited() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &token_id, &creator, 10_000);
+    let unlock_at = env.ledger().timestamp() + 1_000;
+
+    client.create_lock(
+        &creator,
+        &token_id,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+
+    let result = client.try_create_lock(
+        &creator,
+        &token_id,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+    assert_eq!(result, Err(Ok(ContractError::RateLimitExceeded)));
+}
+
+#[test]
+fn create_split_lock_back_to_back_is_rate_limited() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &token_id, &creator, 20_000);
+    let unlock_at = env.ledger().timestamp() + 1_000;
+
+    client.create_split_lock(
+        &creator,
+        &token_id,
+        &10_000_i128,
+        &vec![&env, (b1.clone(), 7_000_u64), (b2.clone(), 3_000_u64)],
+        &unlock_at,
+        &None,
+    );
+
+    let result = client.try_create_split_lock(
+        &creator,
+        &token_id,
+        &10_000_i128,
+        &vec![&env, (b1, 7_000_u64), (b2, 3_000_u64)],
+        &unlock_at,
+        &None,
+    );
+    assert_eq!(result, Err(Ok(ContractError::RateLimitExceeded)));
+}
+
+#[test]
+fn create_split_lock_respects_cooldown_from_prior_create_lock() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &token_id, &creator, 20_000);
+    let unlock_at = env.ledger().timestamp() + 1_000;
+
+    client.create_lock(
+        &creator,
+        &token_id,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+
+    // Same creator, still within the cooldown window — create_split_lock must
+    // not be usable to bypass the limit that just applied to create_lock.
+    let result = client.try_create_split_lock(
+        &creator,
+        &token_id,
+        &10_000_i128,
+        &vec![&env, (b1, 7_000_u64), (b2, 3_000_u64)],
+        &unlock_at,
+        &None,
+    );
+    assert_eq!(result, Err(Ok(ContractError::RateLimitExceeded)));
+}
+
+#[test]
+fn create_split_lock_succeeds_after_cooldown_elapses() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &token_id, &creator, 20_000);
+    let unlock_at = env.ledger().timestamp() + 1_000;
+
+    client.create_split_lock(
+        &creator,
+        &token_id,
+        &10_000_i128,
+        &vec![&env, (b1.clone(), 7_000_u64), (b2.clone(), 3_000_u64)],
+        &unlock_at,
+        &None,
+    );
+
+    advance_time(&env, 60);
+
+    let group_id = client.create_split_lock(
+        &creator,
+        &token_id,
+        &10_000_i128,
+        &vec![&env, (b1, 7_000_u64), (b2, 3_000_u64)],
+        &unlock_at,
+        &None,
+    );
+    assert!(client.get_split_group(&group_id).is_some());
+}
+
 // ── Storage optimization: selective TTL (#148) ────────────────────────────────
 // Active locks must use PERSISTENT_BUMP (365 days); withdrawn locks must use
 // WITHDRAWN_BUMP (30 days). We verify the observable effect: after withdrawal
