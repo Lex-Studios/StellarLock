@@ -13,12 +13,14 @@ import { createTokenLock } from "@/lib/token-locker"
 import { createSplitLock, type SplitBeneficiary } from "@/lib/split-lock"
 import { trackEvent } from "@/lib/analytics"
 import { addTransaction } from "@/lib/transaction-history"
-import { cn, formatDate, isValidStellarAddress, notify } from "@/lib/utils"
+import { cn, formatDate, notify } from "@/lib/utils"
+import { validateTokenLockForm, type FieldKey } from "@/lib/validation/lockFormValidation"
+import { FormValidationErrors } from "@/components/locks/FormValidationErrors"
 import { sanitizeError } from "@/lib/error-sanitizer"
 import type { StructuredError } from "@/lib/errors"
 import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
 import { useAnnouncer } from "@/hooks/useAnnouncer"
-import { CONTRACTS, type TxPhase, submitTokenApproval, isValidStellarContractAddress } from "@/lib/stellar"
+import { CONTRACTS, type TxPhase, submitTokenApproval } from "@/lib/stellar"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
 import { CostEstimate } from "@/components/locks/CostEstimate"
 import { MultiBeneficiaryFields } from "@/components/locks/MultiBeneficiaryFields"
@@ -126,8 +128,42 @@ export function CreateTokenLockForm() {
 
   const trimmedTokenAddress = tokenAddress.trim()
   const trimmedBeneficiary = beneficiary.trim()
-  const effectiveBeneficiary = trimmedBeneficiary || address || ""
-  const validTokenAddress = isValidStellarContractAddress(trimmedTokenAddress) ? trimmedTokenAddress : undefined
+
+  // Single source of truth for this form's validity — the same module backs
+  // CreateLpLockForm, so the two forms can't drift apart. Memoized because
+  // FormValidationErrors keys its screen-reader announcement off the result.
+  //
+  // `allowance` is deliberately not passed: a low allowance is recoverable from
+  // the confirm modal's Approve button, so it must not block reaching it.
+  const validation = useMemo(
+    () =>
+      validateTokenLockForm({
+        tokenAddress,
+        amount,
+        beneficiary,
+        walletAddress: address ?? null,
+        unlockDate,
+        multiMode,
+        splitBeneficiaries,
+      }),
+    [tokenAddress, amount, beneficiary, address, unlockDate, multiMode, splitBeneficiaries],
+  )
+  const valid = validation.isValid
+  const hasIssue = (field: FieldKey) => validation.issues.some((it) => it.field === field)
+
+  // Surface an issue only once the user has entered something for that field,
+  // so a pristine form doesn't greet them with a wall of red.
+  const visibleIssues = useMemo(() => {
+    const touched = new Set<FieldKey>()
+    if (tokenAddress.trim()) touched.add("tokenAddress")
+    if (amount.trim()) touched.add("amount")
+    if (beneficiary.trim()) touched.add("beneficiary")
+    if (unlockDate) touched.add("unlockDate")
+    if (multiMode && splitBeneficiaries.some((b) => b.address.trim())) touched.add("splitBeneficiaries")
+    return validation.issues.filter((it) => touched.has(it.field))
+  }, [validation, tokenAddress, amount, beneficiary, unlockDate, multiMode, splitBeneficiaries])
+
+  const validTokenAddress = hasIssue("tokenAddress") ? undefined : trimmedTokenAddress
   const {
     balance: balanceStroops,
     isLoading: balanceLoading,
@@ -152,15 +188,6 @@ export function CreateTokenLockForm() {
   const minDate = useMemo(() => new Date(Date.now() + DAY).toISOString().slice(0, 10), [])
   const unlockTs = unlockDate ? new Date(unlockDate).getTime() : 0
   const vestingStartTs = vestingStartDate ? new Date(vestingStartDate).getTime() : 0
-  const tokenAddressValid = isValidStellarContractAddress(trimmedTokenAddress)
-  const beneficiaryValid = isValidStellarAddress(effectiveBeneficiary)
-  const splitSharesOk =
-    splitBeneficiaries.length >= 2 &&
-    splitBeneficiaries.every((b) => isValidStellarAddress(b.address)) &&
-    splitBeneficiaries.reduce((s, b) => s + b.shareBps, 0) === 10_000
-
-  const valid =
-    tokenAddressValid && Number(amount) > 0 && unlockTs > Date.now() && (multiMode ? splitSharesOk : beneficiaryValid)
 
   // Build the contract args for cost estimation when form is sufficiently filled in
   const costArgs = useMemo((): xdr.ScVal[] | null => {
@@ -341,7 +368,7 @@ export function CreateTokenLockForm() {
             value={tokenAddress}
             onChange={(e) => setTokenAddress(e.target.value)}
             className="font-mono"
-            aria-invalid={!!trimmedTokenAddress && !tokenAddressValid}
+            aria-invalid={!!trimmedTokenAddress && hasIssue("tokenAddress")}
           />
           <p className="text-xs text-muted-foreground">{t("tokenForm.tokenHint")}</p>
         </div>
@@ -429,7 +456,7 @@ export function CreateTokenLockForm() {
               placeholder={address ?? "G…"}
               value={beneficiary}
               onChange={(e) => setBeneficiary(e.target.value)}
-              aria-invalid={!!trimmedBeneficiary && !beneficiaryValid}
+              aria-invalid={!!trimmedBeneficiary && hasIssue("beneficiary")}
             />
             <p className="text-xs text-muted-foreground">{t("tokenForm.beneficiaryHint")}</p>
           </div>
@@ -612,6 +639,8 @@ export function CreateTokenLockForm() {
         <TxErrorAlert error={error} />
 
         <CostEstimate contractId={CONTRACTS.tokenLocker} method="create_lock" args={costArgs} />
+
+        <FormValidationErrors issues={visibleIssues} />
 
         {cooldownRemaining > 0 && (
           <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
