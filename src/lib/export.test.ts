@@ -31,6 +31,10 @@ const mockLpLock: Lock = {
 
 describe("export utilities", () => {
   let downloadedFilename: string | null = null
+  // Referencing these as standalone bindings (rather than global.URL.createObjectURL
+  // each time) avoids @typescript-eslint/unbound-method on lib.dom's URL methods.
+  let createObjectURLMock: ReturnType<typeof vi.fn>
+  let revokeObjectURLMock: ReturnType<typeof vi.fn>
 
   // Held in locals rather than read back off `global.URL`, so assertions never
   // reference an unbound method.
@@ -45,6 +49,10 @@ describe("export utilities", () => {
     revokeObjectURL.mockClear()
     global.URL.createObjectURL = createObjectURL
     global.URL.revokeObjectURL = revokeObjectURL
+    createObjectURLMock = vi.fn(() => "blob:mock-url")
+    revokeObjectURLMock = vi.fn()
+    global.URL.createObjectURL = createObjectURLMock
+    global.URL.revokeObjectURL = revokeObjectURLMock
 
     const mockLink = document.createElement("a")
     vi.spyOn(document, "createElement").mockImplementation((tagName: string) => {
@@ -59,6 +67,7 @@ describe("export utilities", () => {
         // Swallow the assignment so jsdom never tries to resolve the blob URL.
         Object.defineProperty(link, "href", {
           set: () => undefined,
+          set: () => {},
           get: () => "blob:mock-url",
         })
         link.click = vi.fn()
@@ -158,6 +167,7 @@ describe("export utilities", () => {
       exportToCSV(locks, "test.csv")
 
       expect(createObjectURL).toHaveBeenCalled()
+      expect(createObjectURLMock).toHaveBeenCalled()
     })
 
     it("creates blob with correct MIME type for JSON", () => {
@@ -165,6 +175,7 @@ describe("export utilities", () => {
       exportToJSON(locks, "test.json")
 
       expect(createObjectURL).toHaveBeenCalled()
+      expect(createObjectURLMock).toHaveBeenCalled()
     })
 
     it("revokes blob URL after download", () => {
@@ -172,6 +183,7 @@ describe("export utilities", () => {
       exportToCSV(locks, "test.csv")
 
       expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock-url")
+      expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:mock-url")
     })
   })
 })

@@ -6,7 +6,7 @@ We are committed to providing a welcoming and inclusive community. Please review
 
 ## Prerequisites
 
-- **Node.js** 18+
+- **Node.js** 22+
 - **pnpm** — `npm install -g pnpm`
 - **Rust** — `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 - **Stellar CLI** — `cargo install stellar-cli --features opt`
@@ -15,7 +15,7 @@ We are committed to providing a welcoming and inclusive community. Please review
 ## Setup
 
 ```bash
-git clone https://github.com/mc-stephen/StellarLock.git
+git clone https://github.com/StellarLock/StellarLock.git
 cd StellarLock
 pnpm install
 pnpm dev
@@ -125,4 +125,4 @@ Examples:
 - `feat(frontend): add export button to My Locks page`
 - `fix(contract): prevent overflow in extend lock duration`
 
-Run `pnpm release` to generate CHANGELOG.md and tag a new version.
+Run `pnpm changelog` to generate CHANGELOG.md, or `pnpm changelog:release` when cutting a tagged release.

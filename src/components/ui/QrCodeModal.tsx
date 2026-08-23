@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react"
+import { useRef, useCallback } from "react"
 import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { QRCodeCanvas } from "qrcode.react"
 import { X, Download, Copy, Check } from "lucide-react"
@@ -22,8 +22,6 @@ export function QrCodeModal({ url, title = "Share Lock", onClose }: QrCodeModalP
   const [copied, setCopied] = useState(false)
 
   useModalFocusTrap({ active: true, containerRef, onEscape: onClose })
-
-
 
   /** Download the rendered QR code canvas as a PNG. */
   const handleDownload = useCallback(() => {
@@ -94,10 +92,7 @@ export function QrCodeModal({ url, title = "Share Lock", onClose }: QrCodeModalP
 
         {/* QR code */}
         <div className="flex flex-col items-center gap-4 p-6">
-          <div
-            ref={canvasRef}
-            className="flex items-center justify-center rounded-xl bg-white p-4 shadow-inner"
-          >
+          <div ref={canvasRef} className="flex items-center justify-center rounded-xl bg-white p-4 shadow-inner">
             <QRCodeCanvas
               value={url}
               size={QR_SIZE}
@@ -112,9 +107,7 @@ export function QrCodeModal({ url, title = "Share Lock", onClose }: QrCodeModalP
             />
           </div>
 
-          <p className="max-w-[256px] break-all text-center text-xs text-muted-foreground">
-            {url}
-          </p>
+          <p className="max-w-[256px] break-all text-center text-xs text-muted-foreground">{url}</p>
 
           <div className="flex w-full gap-2">
             <Button
@@ -135,11 +128,7 @@ export function QrCodeModal({ url, title = "Share Lock", onClose }: QrCodeModalP
                 </>
               )}
             </Button>
-            <Button
-              className="flex-1"
-              onClick={handleDownload}
-              aria-label="Download QR code as PNG"
-            >
+            <Button className="flex-1" onClick={handleDownload} aria-label="Download QR code as PNG">
               <Download className="h-4 w-4" />
               Download PNG
             </Button>

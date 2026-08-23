@@ -19,32 +19,43 @@ import {
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card"
 import { StatCard } from "@/components/ui/StatCard"
 import { SkeletonStatCard } from "@/components/ui/Skeleton"
-import { useAsync } from "@/hooks/useAsync"
-import { MOCK_LOCKS } from "@/lib/mock-data"
-import { getTvlOverTime, getLockVolumeByDay, getTokenDistribution, type DistributionSlice } from "@/lib/dashboardStats"
+import { useDiscoverStats } from "@/hooks/useLocks"
+import { getTvlOverTime, getLockVolumeByDay, type DistributionSlice } from "@/lib/dashboardStats"
 import { formatUsd } from "@/lib/utils"
 
 const CHART_COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ec4899", "#06b6d4", "#a855f7"]
 
-/**
- * Locks are sourced from MOCK_LOCKS pending the indexer HTTP API (see the
- * indexer follow-up); swapping to live data is a matter of replacing this
- * fetcher, since the chart mappings below are pure functions of Lock[].
- */
-function useAllLocks() {
-  return useAsync(() => Promise.resolve(MOCK_LOCKS), [])
-}
-
 export function Analytics() {
   const { t } = useTranslation()
-  const { data: locks, loading } = useAllLocks()
-  const activeLocks = (locks ?? []).filter((l) => l.status !== "withdrawn")
+  const { data: stats, loading } = useDiscoverStats()
 
-  const tvlSeries = getTvlOverTime(activeLocks)
-  const volumeSeries = getLockVolumeByDay(activeLocks)
-  const distribution = getTokenDistribution(activeLocks)
-  const totalValueLocked = activeLocks.reduce((s, l) => s + l.usdValue, 0)
-  const isEmpty = !loading && activeLocks.length === 0
+  // Combine the lock arrays the indexer already returns for time-series charts.
+  // These cover recent activity and upcoming unlocks — sufficient for the trend
+  // charts without fetching the full lock list over RPC.
+  const chartLocks = [
+    ...(stats?.recentLocks ?? []),
+    ...(stats?.upcomingUnlocks ?? []),
+  ].filter((l) => l.status !== "withdrawn")
+
+  // Deduplicate by id in case a lock appears in both arrays.
+  const seen = new Set<string>()
+  const dedupedLocks = chartLocks.filter((l) => {
+    if (seen.has(l.id)) return false
+    seen.add(l.id)
+    return true
+  })
+
+  const tvlSeries = getTvlOverTime(dedupedLocks)
+  const volumeSeries = getLockVolumeByDay(dedupedLocks)
+
+  // Token distribution comes from the indexer's pre-aggregated topTokens, which
+  // covers all locks — not just the recent/upcoming sample.
+  const distribution: DistributionSlice[] = (stats?.tokenGroups ?? [])
+    .map((g) => ({ symbol: g.token.symbol, value: g.totalValue }))
+    .sort((a, b) => b.value - a.value)
+
+  const totalValueLocked = stats?.totalValueLocked ?? 0
+  const isEmpty = !loading && (stats?.totalLocks ?? 0) === 0
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -74,12 +85,12 @@ export function Analytics() {
             />
             <StatCard
               label={t("analytics.totalLocks")}
-              value={String(activeLocks.length)}
+              value={String(stats?.totalLocks ?? 0)}
               icon={<LockIcon className="h-4 w-4" />}
             />
             <StatCard
               label={t("analytics.tokensTracked")}
-              value={String(distribution.length)}
+              value={String(stats?.uniqueTokens ?? 0)}
               icon={<BarChart3 className="h-4 w-4" />}
             />
           </>

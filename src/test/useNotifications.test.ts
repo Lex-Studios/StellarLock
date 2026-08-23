@@ -12,6 +12,11 @@ import {
   unsubscribeNotifications,
 } from "@/hooks/useNotifications"
 
+type GlobalWithNotification = Omit<typeof globalThis, "Notification"> & {
+  Notification?: typeof Notification
+}
+const globalWithNotification = globalThis as GlobalWithNotification
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------

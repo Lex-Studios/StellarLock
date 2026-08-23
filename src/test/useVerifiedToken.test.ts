@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { renderHook, waitFor, act } from "@testing-library/react"
-import { useVerifiedToken } from "@/hooks/useVerifiedToken"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -11,12 +10,8 @@ const MAINNET_ADDRESS = "CCBC3GTNZPUGSXEKQFXB3XMBJQ2YOLZX43RDXHDSYTWNK64EP4WFVRS
 const UNKNOWN_ADDRESS = "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
 
 const VERIFIED_TOKENS_FIXTURE = {
-  testnet: [
-    { address: TESTNET_ADDRESS, symbol: "TST", name: "Test Token" },
-  ],
-  mainnet: [
-    { address: MAINNET_ADDRESS, symbol: "MLK", name: "Mainnet Token" },
-  ],
+  testnet: [{ address: TESTNET_ADDRESS, symbol: "TST", name: "Test Token" }],
+  mainnet: [{ address: MAINNET_ADDRESS, symbol: "MLK", name: "Mainnet Token" }],
 }
 
 function makeResponse(data: unknown, ok = true): Response {
@@ -44,7 +39,10 @@ afterEach(() => {
 describe("useVerifiedToken", () => {
   describe("initial / undefined contractId", () => {
     it("returns null when no contractId is provided", async () => {
-      vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))),
+      )
 
       // Dynamic import after resetModules so we get a fresh module with empty cache
       const { useVerifiedToken: hook } = await import("@/hooks/useVerifiedToken")
@@ -55,7 +53,10 @@ describe("useVerifiedToken", () => {
     })
 
     it("returns null when contractId is an empty string", async () => {
-      vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))),
+      )
 
       const { useVerifiedToken: hook } = await import("@/hooks/useVerifiedToken")
       const { result } = renderHook(() => hook(""))
@@ -71,7 +72,10 @@ describe("useVerifiedToken", () => {
     })
 
     it("returns true for an address that is in the testnet verified list", async () => {
-      vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))),
+      )
 
       const { useVerifiedToken: hook } = await import("@/hooks/useVerifiedToken")
       const { result } = renderHook(() => hook(TESTNET_ADDRESS))
@@ -81,7 +85,10 @@ describe("useVerifiedToken", () => {
     })
 
     it("returns false for an address NOT in the testnet verified list", async () => {
-      vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))),
+      )
 
       const { useVerifiedToken: hook } = await import("@/hooks/useVerifiedToken")
       const { result } = renderHook(() => hook(UNKNOWN_ADDRESS))
@@ -91,7 +98,10 @@ describe("useVerifiedToken", () => {
     })
 
     it("is case-insensitive for address matching", async () => {
-      vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))),
+      )
 
       const { useVerifiedToken: hook } = await import("@/hooks/useVerifiedToken")
       const { result } = renderHook(() => hook(TESTNET_ADDRESS.toLowerCase()))
@@ -107,7 +117,10 @@ describe("useVerifiedToken", () => {
     })
 
     it("returns true for an address in the mainnet verified list", async () => {
-      vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))),
+      )
 
       const { useVerifiedToken: hook } = await import("@/hooks/useVerifiedToken")
       const { result } = renderHook(() => hook(MAINNET_ADDRESS))
@@ -117,7 +130,10 @@ describe("useVerifiedToken", () => {
     })
 
     it("returns false for a testnet address when on mainnet", async () => {
-      vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))),
+      )
 
       const { useVerifiedToken: hook } = await import("@/hooks/useVerifiedToken")
       const { result } = renderHook(() => hook(TESTNET_ADDRESS))
@@ -133,7 +149,10 @@ describe("useVerifiedToken", () => {
     })
 
     it("returns true for a mainnet address when VITE_NETWORK is staging", async () => {
-      vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))),
+      )
 
       const { useVerifiedToken: hook } = await import("@/hooks/useVerifiedToken")
       const { result } = renderHook(() => hook(MAINNET_ADDRESS))
@@ -145,7 +164,10 @@ describe("useVerifiedToken", () => {
 
   describe("fetch failure / error handling", () => {
     it("returns false when the fetch response is not ok", async () => {
-      vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(makeResponse(null, false))))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => Promise.resolve(makeResponse(null, false))),
+      )
 
       const { useVerifiedToken: hook } = await import("@/hooks/useVerifiedToken")
       const { result } = renderHook(() => hook(TESTNET_ADDRESS))
@@ -155,7 +177,10 @@ describe("useVerifiedToken", () => {
     })
 
     it("returns false when fetch throws a network error", async () => {
-      vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("network error"))))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => Promise.reject(new Error("network error"))),
+      )
 
       const { useVerifiedToken: hook } = await import("@/hooks/useVerifiedToken")
       const { result } = renderHook(() => hook(TESTNET_ADDRESS))
@@ -168,9 +193,7 @@ describe("useVerifiedToken", () => {
       vi.stubGlobal(
         "fetch",
         vi.fn(() =>
-          Promise.resolve(
-            new Response("not-json", { status: 200, headers: { "Content-Type": "text/plain" } }),
-          ),
+          Promise.resolve(new Response("not-json", { status: 200, headers: { "Content-Type": "text/plain" } })),
         ),
       )
 
@@ -206,14 +229,16 @@ describe("useVerifiedToken", () => {
 
   describe("contractId changes", () => {
     it("updates the result when contractId changes from known to unknown", async () => {
-      vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(() => Promise.resolve(makeResponse(VERIFIED_TOKENS_FIXTURE))),
+      )
       vi.stubEnv("VITE_NETWORK", "testnet")
 
       const { useVerifiedToken: hook } = await import("@/hooks/useVerifiedToken")
-      const { result, rerender } = renderHook(
-        ({ id }: { id: string }) => hook(id),
-        { initialProps: { id: TESTNET_ADDRESS } },
-      )
+      const { result, rerender } = renderHook(({ id }: { id: string }) => hook(id), {
+        initialProps: { id: TESTNET_ADDRESS },
+      })
 
       await waitFor(() => expect(result.current).toBe(true))
 

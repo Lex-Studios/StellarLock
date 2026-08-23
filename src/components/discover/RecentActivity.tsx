@@ -38,6 +38,16 @@ function safeString(v: unknown): string | null {
   return null
 }
 
+// Soroban amounts can arrive as a string, number, or bigint depending on the
+// event source; anything else (e.g. an undecoded i128 object) has no
+// meaningful string form, so fall back rather than risk "[object Object]".
+function safeAmountString(v: unknown): string | null {
+  if (typeof v === "string" || typeof v === "number" || typeof v === "bigint") {
+    return String(v)
+  }
+  return null
+}
+
 function toLockKind(type: ActivityType): LockKind {
   return type.startsWith("lp_") ? "lp" : "token"
 }
@@ -109,7 +119,7 @@ function eventToFeedItem(event: ContractEvent): FeedItem | null {
           <>
             <span>{creatorName} </span>
             <span>locked</span>
-            <span className="font-medium"> {amount ? String(amount) : "…"} </span>
+            <span className="font-medium"> {safeAmountString(amount) ?? "…"} </span>
             <span>{tokenSymbolOrAddr}</span>
             <span> until </span>
             <span className="font-medium">{unlockDateLabel}</span>
@@ -125,7 +135,7 @@ function eventToFeedItem(event: ContractEvent): FeedItem | null {
           <>
             <span>{beneficiary ? shortAddress(beneficiary) : "Unknown"} </span>
             <span>withdrew</span>
-            <span className="font-medium"> {amount ? String(amount) : "…"} </span>
+            <span className="font-medium"> {safeAmountString(amount) ?? "…"} </span>
             <span>{token ? shortAddress(token) : "Token"}</span>
             <span> from lock </span>
             <Link to={`/app/lock/${kind}/${lockId}`} className="font-mono text-primary hover:underline">
@@ -177,7 +187,7 @@ function eventToFeedItem(event: ContractEvent): FeedItem | null {
           <>
             <span>{creatorName} </span>
             <span>locked</span>
-            <span className="font-medium"> {amount ? String(amount) : "…"} </span>
+            <span className="font-medium"> {safeAmountString(amount) ?? "…"} </span>
             <span>{token ? shortAddress(token) : "LP"}</span>
             <span> until </span>
             <span className="font-medium">{lockedUntil ? formatDate(lockedUntil) : "(unknown)"}</span>
@@ -193,7 +203,7 @@ function eventToFeedItem(event: ContractEvent): FeedItem | null {
           <>
             <span>{beneficiary ? shortAddress(beneficiary) : "Unknown"} </span>
             <span>withdrew</span>
-            <span className="font-medium"> {amount ? String(amount) : "…"} </span>
+            <span className="font-medium"> {safeAmountString(amount) ?? "…"} </span>
             <span>{token ? shortAddress(token) : "LP"}</span>
             <span> from lock </span>
             <Link to={`/app/lock/${kind}/${lockId}`} className="font-mono text-primary hover:underline">
@@ -272,7 +282,10 @@ function badgeForType(type: ActivityType) {
       return { label: "Extended", className: "bg-success/10 text-success border-success/20" }
     case "beneficiary_transferred":
     case "lp_beneficiary_transferred":
-      return { label: "Beneficiary", className: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:text-yellow-400" }
+      return {
+        label: "Beneficiary",
+        className: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:text-yellow-400",
+      }
     default:
       return { label: "Activity", className: "bg-primary/10 text-primary border-primary/20" }
   }
@@ -323,75 +336,76 @@ export function RecentActivity() {
     return () => window.clearInterval(id)
   }, [intervalMs, paused])
 
-  const content = feedItems.length === 0 ? (
-    <Card className="p-8 text-center text-muted-foreground">
-      <p>{t("discover.noRecentActivity")}</p>
-    </Card>
-  ) : (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">
-            Live
-          </Badge>
-          <span className="text-xs text-muted-foreground">{MAX_ITEMS} max</span>
+  const content =
+    feedItems.length === 0 ? (
+      <Card className="p-8 text-center text-muted-foreground">
+        <p>{t("discover.noRecentActivity")}</p>
+      </Card>
+    ) : (
+      <div className="flex flex-col">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">
+              Live
+            </Badge>
+            <span className="text-xs text-muted-foreground">{MAX_ITEMS} max</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPaused((p) => !p)}
+              className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+              {paused ? t("common.resume") : t("common.pause")}
+            </button>
+            {/* minimal interval control: 3s / 10s */}
+            <select
+              value={intervalMs}
+              onChange={(e) => setIntervalMs(Number(e.target.value))}
+              className="h-8 rounded-md border border-border bg-card px-2 text-xs text-muted-foreground"
+              aria-label="Feed refresh interval"
+            >
+              <option value={3000}>3s</option>
+              <option value={10000}>10s</option>
+            </select>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setPaused((p) => !p)}
-            className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
-            {paused ? t("common.resume") : t("common.pause")}
-          </button>
-          {/* minimal interval control: 3s / 10s */}
-          <select
-            value={intervalMs}
-            onChange={(e) => setIntervalMs(Number(e.target.value))}
-            className="h-8 rounded-md border border-border bg-card px-2 text-xs text-muted-foreground"
-            aria-label="Feed refresh interval"
-          >
-            <option value={3000}>3s</option>
-            <option value={10000}>10s</option>
-          </select>
-        </div>
-      </div>
-
-      <div ref={containerRef} className="max-h-[340px] overflow-auto">
-        {feedItems
-          .slice()
-          // ensure oldest removed as new arrive: newest-first list, but scrolling bottom should show latest at bottom.
-          .map((item) => {
-            const { className, label } = badgeForType(item.type)
-            return (
-              <Link
-                key={item.id}
-                to={itemHref(item)}
-                className="block border-b border-border px-4 py-3 transition-colors hover:bg-secondary/30"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                    {iconForType(item.type)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
-                      <Badge variant="outline" className={className + " text-[10px]"}>
-                        {label}
-                      </Badge>
+        <div ref={containerRef} className="max-h-[340px] overflow-auto">
+          {feedItems
+            .slice()
+            // ensure oldest removed as new arrive: newest-first list, but scrolling bottom should show latest at bottom.
+            .map((item) => {
+              const { className, label } = badgeForType(item.type)
+              return (
+                <Link
+                  key={item.id}
+                  to={itemHref(item)}
+                  className="block border-b border-border px-4 py-3 transition-colors hover:bg-secondary/30"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                      {iconForType(item.type)}
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground leading-snug">{item.detail}</p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
+                        <Badge variant="outline" className={className + " text-[10px]"}>
+                          {label}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground leading-snug">{item.detail}</p>
+                    </div>
+                    <span className="shrink-0 text-xs text-muted-foreground">{formatDate(item.timestamp)}</span>
                   </div>
-                  <span className="shrink-0 text-xs text-muted-foreground">{formatDate(item.timestamp)}</span>
-                </div>
-              </Link>
-            )
-          })}
+                </Link>
+              )
+            })}
+        </div>
       </div>
-    </div>
-  )
+    )
 
   return (
     <section className="mt-8">
@@ -403,4 +417,3 @@ export function RecentActivity() {
     </section>
   )
 }
-
