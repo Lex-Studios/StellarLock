@@ -2,6 +2,7 @@
 
 use soroban_sdk::{
     testutils::{Address as _, Ledger},
+    token, vec, Address, BytesN, Env,
     token, vec, Address, Env, IntoVal,
 };
 
@@ -1482,4 +1483,96 @@ fn unauthorized_address_cannot_transfer_beneficiary() {
         result.is_err(),
         "transfer_beneficiary by an unauthorized address must be rejected"
     );
+}
+
+// ── Upgrade timelock ──────────────────────────────────────────────────────────
+
+#[test]
+fn propose_upgrade_fails_when_not_initialized() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let wasm_hash = BytesN::from_array(&env, &[0u8; 32]);
+    let result = client.try_propose_upgrade(&wasm_hash);
+    assert_eq!(result, Err(Ok(ContractError::NotInitialized)));
+}
+
+#[test]
+fn execute_upgrade_fails_when_not_initialized() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let result = client.try_execute_upgrade();
+    assert_eq!(result, Err(Ok(ContractError::NotInitialized)));
+}
+
+#[test]
+fn cancel_upgrade_fails_when_not_initialized() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let result = client.try_cancel_upgrade();
+    assert_eq!(result, Err(Ok(ContractError::NotInitialized)));
+}
+
+#[test]
+fn execute_upgrade_fails_when_no_pending_upgrade() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.init(&admin);
+
+    let result = client.try_execute_upgrade();
+    assert_eq!(result, Err(Ok(ContractError::NoPendingUpgrade)));
+}
+
+#[test]
+fn execute_upgrade_fails_before_timelock_elapses() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.init(&admin);
+
+    let wasm_hash = BytesN::from_array(&env, &[1u8; 32]);
+    client.propose_upgrade(&wasm_hash);
+
+    // Advance time by less than the 7-day timelock (UPGRADE_DELAY = 7 * 24 * 3600)
+    advance_time(&env, 6 * 24 * 3600);
+
+    let result = client.try_execute_upgrade();
+    assert_eq!(result, Err(Ok(ContractError::TimelockNotElapsed)));
+}
+
+#[test]
+fn propose_upgrade_succeeds_after_init() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.init(&admin);
+
+    let wasm_hash = BytesN::from_array(&env, &[2u8; 32]);
+    assert!(client.try_propose_upgrade(&wasm_hash).is_ok());
+}
+
+#[test]
+fn cancel_upgrade_clears_pending_proposal() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.init(&admin);
+
+    let wasm_hash = BytesN::from_array(&env, &[3u8; 32]);
+    client.propose_upgrade(&wasm_hash);
+
+    // Cancel the proposal
+    client.cancel_upgrade();
+
+    // After cancellation there is no pending upgrade, so execute must fail with NoPendingUpgrade
+    advance_time(&env, 8 * 24 * 3600);
+    let result = client.try_execute_upgrade();
+    assert_eq!(result, Err(Ok(ContractError::NoPendingUpgrade)));
 }
