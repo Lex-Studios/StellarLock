@@ -13,6 +13,7 @@ import {
 
 import { getContractAddress } from "@/lib/contracts.generated"
 import { createLogger } from "@/lib/logger"
+import { getOnChainTokenMeta } from "@/lib/token-metadata"
 
 const log = createLogger("stellar")
 
@@ -412,7 +413,8 @@ export async function estimateLockCost(
 
 export async function getTokenBalance(tokenAddress: string, owner: string): Promise<number> {
   const raw = await simulateCall<bigint>(tokenAddress, "balance", [new Address(owner).toScVal()])
-  return Number(raw ?? 0n) / STELLAR_DECIMALS
+  const { decimals } = await getOnChainTokenMeta(tokenAddress)
+  return Number(raw ?? 0n) / 10 ** decimals
 }
 
 export async function getTokenAllowance(tokenAddress: string, owner: string, spender: string): Promise<number> {
@@ -420,7 +422,8 @@ export async function getTokenAllowance(tokenAddress: string, owner: string, spe
     new Address(owner).toScVal(),
     new Address(spender).toScVal(),
   ])
-  return Number(raw ?? 0n) / 1e7
+  const { decimals } = await getOnChainTokenMeta(tokenAddress)
+  return Number(raw ?? 0n) / 10 ** decimals
 }
 
 export async function submitTokenApproval(
