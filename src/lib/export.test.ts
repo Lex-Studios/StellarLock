@@ -36,10 +36,19 @@ describe("export utilities", () => {
   let createObjectURLMock: ReturnType<typeof vi.fn>
   let revokeObjectURLMock: ReturnType<typeof vi.fn>
 
+  // Held in locals rather than read back off `global.URL`, so assertions never
+  // reference an unbound method.
+  const createObjectURL = vi.fn(() => "blob:mock-url")
+  const revokeObjectURL = vi.fn()
+
   beforeEach(() => {
     downloadedFilename = null
 
     // Mock URL.createObjectURL and document functions
+    createObjectURL.mockClear()
+    revokeObjectURL.mockClear()
+    global.URL.createObjectURL = createObjectURL
+    global.URL.revokeObjectURL = revokeObjectURL
     createObjectURLMock = vi.fn(() => "blob:mock-url")
     revokeObjectURLMock = vi.fn()
     global.URL.createObjectURL = createObjectURLMock
@@ -55,7 +64,9 @@ describe("export utilities", () => {
           },
           get: () => downloadedFilename,
         })
+        // Swallow the assignment so jsdom never tries to resolve the blob URL.
         Object.defineProperty(link, "href", {
+          set: () => undefined,
           set: () => {},
           get: () => "blob:mock-url",
         })
@@ -155,6 +166,7 @@ describe("export utilities", () => {
       const locks = [mockLock]
       exportToCSV(locks, "test.csv")
 
+      expect(createObjectURL).toHaveBeenCalled()
       expect(createObjectURLMock).toHaveBeenCalled()
     })
 
@@ -162,6 +174,7 @@ describe("export utilities", () => {
       const locks = [mockLock]
       exportToJSON(locks, "test.json")
 
+      expect(createObjectURL).toHaveBeenCalled()
       expect(createObjectURLMock).toHaveBeenCalled()
     })
 
@@ -169,6 +182,7 @@ describe("export utilities", () => {
       const locks = [mockLock]
       exportToCSV(locks, "test.csv")
 
+      expect(revokeObjectURL).toHaveBeenCalledWith("blob:mock-url")
       expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:mock-url")
     })
   })

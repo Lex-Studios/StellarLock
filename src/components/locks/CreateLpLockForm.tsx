@@ -26,6 +26,7 @@ import { AddressBookModal } from "@/components/ui/AddressBookModal"
 import { BookUser } from "lucide-react"
 import { createLogger } from "@/lib/logger"
 import { useDraftAutoSave } from "@/hooks/useDraftStorage"
+import { addNotification } from "@/hooks/useNotifications"
 
 const log = createLogger("CreateLpLockForm")
 
@@ -197,6 +198,13 @@ export function CreateLpLockForm() {
       addTransaction(txHash, "create_lock", { lockId: id, amount: String(amount) })
       trackEvent("lock_create_lp", { dex })
       notify.lockCreated()
+      addNotification({
+        type: "lock_created",
+        lockId: id,
+        lockKind: "lp",
+        title: t("notifications.center.lockCreatedTitle"),
+        message: t("notifications.center.lockCreatedMessage", { id, date: formatDate(unlockTs) }),
+      })
       void navigate(`/app/lock/${id}`)
     } catch (err: unknown) {
       log.error("[createLpLock error]", err)

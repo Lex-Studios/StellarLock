@@ -52,6 +52,7 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
+    const callArgs = vi.mocked(submitCall).mock.calls[0]
     const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
     const scArgs = callArgs[2]
 
@@ -72,6 +73,7 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
+    const callArgs = vi.mocked(submitCall).mock.calls[0]
     const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
     const scArgs = callArgs[2]
     const beneficiariesVal = scArgs[3]
@@ -92,6 +94,7 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
+    const callArgs = vi.mocked(submitCall).mock.calls[0]
     const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
     const scArgs = callArgs[2]
 
@@ -105,6 +108,7 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
+    const callArgs = vi.mocked(submitCall).mock.calls[0]
     const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
     const scArgs = callArgs[2]
 
@@ -119,6 +123,8 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
+    expect(submitCall).toHaveBeenCalledTimes(1)
+    const callArgs = vi.mocked(submitCall).mock.calls[0]
     expect(submitCallWithHash).toHaveBeenCalledTimes(1)
     const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
     const scArgs = callArgs[2]
@@ -136,6 +142,8 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
+    expect(submitCall).toHaveBeenCalledTimes(1)
+    const callArgs = vi.mocked(submitCall).mock.calls[0]
     expect(submitCallWithHash).toHaveBeenCalledTimes(1)
     const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
     const scArgs = callArgs[2]
@@ -149,13 +157,13 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
+    const callArgs = vi.mocked(submitCall).mock.calls[0]
     const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
     const scArgs = callArgs[2]
     const amountVal = scArgs[2]
 
     // Should be i128 with value 10_000_000
     expect(amountVal.switch()).toBe(xdr.ScValType.scvI128())
-    const hi = amountVal.i128().hi()
     const lo = amountVal.i128().lo()
     // 10_000_000 fits in lo
     expect(lo.toBigInt()).toBe(10_000_000n)

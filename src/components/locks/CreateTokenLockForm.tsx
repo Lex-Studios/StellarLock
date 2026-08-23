@@ -27,6 +27,7 @@ import { MultiBeneficiaryFields } from "@/components/locks/MultiBeneficiaryField
 import { AddressBookModal } from "@/components/ui/AddressBookModal"
 import { createLogger } from "@/lib/logger"
 import { useDraftAutoSave } from "@/hooks/useDraftStorage"
+import { addNotification } from "@/hooks/useNotifications"
 
 const log = createLogger("CreateTokenLockForm")
 
@@ -286,6 +287,15 @@ export function CreateTokenLockForm() {
         addTransaction(txHash, "split_lock", { amount: String(amount) })
         trackEvent("lock_create_split", { count: splitBeneficiaries.length, vesting })
         notify.lockCreated()
+        // A split lock has no single id to link to, so the entry is history-only.
+        addNotification({
+          type: "lock_created",
+          lockId: "",
+          lockKind: "token",
+          title: t("notifications.center.splitLockCreatedTitle"),
+          message: t("notifications.center.splitLockCreatedMessage", { count: splitBeneficiaries.length }),
+        })
+        localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
         localStorage.setItem(cooldownKey!, String(Date.now()))
         setCooldownRemaining(COOLDOWN_SECONDS)
         void navigate("/app/locks")
@@ -310,6 +320,14 @@ export function CreateTokenLockForm() {
         addTransaction(txHash, "create_lock", { lockId: id, amount: String(amount) })
         trackEvent("lock_create_token", { vesting })
         notify.lockCreated()
+        addNotification({
+          type: "lock_created",
+          lockId: id,
+          lockKind: "token",
+          title: t("notifications.center.lockCreatedTitle"),
+          message: t("notifications.center.lockCreatedMessage", { id, date: formatDate(unlockTs) }),
+        })
+        localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
         localStorage.setItem(cooldownKey!, String(Date.now()))
         setCooldownRemaining(COOLDOWN_SECONDS)
         void navigate("/app/lock-created", {

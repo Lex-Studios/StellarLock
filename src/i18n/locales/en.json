@@ -231,7 +231,19 @@
     "webhookDesc": "Send unlock events to a URL (Telegram bot, Discord, etc).",
     "enable": "Enable",
     "enabled": "Enabled",
-    "save": "Save"
+    "save": "Save",
+    "center": {
+      "lockCreatedTitle": "Lock created",
+      "lockCreatedMessage": "Lock #{{id}} is active and unlocks on {{date}}.",
+      "splitLockCreatedTitle": "Split lock created",
+      "splitLockCreatedMessage": "Your tokens were locked for {{count}} beneficiaries.",
+      "withdrawnTitle": "Withdrawal confirmed",
+      "withdrawnMessage": "You withdrew {{amount}} {{symbol}} from lock #{{id}}.",
+      "extendedTitle": "Lock extended",
+      "extendedMessage": "Lock #{{id}} now unlocks on {{date}}.",
+      "transferredTitle": "Beneficiary transferred",
+      "transferredMessage": "Lock #{{id}} can now be withdrawn by {{address}}."
+    }
   },
   "lockCard": {
     "lockedAmount": "Locked amount",
