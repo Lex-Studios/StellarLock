@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -5,6 +6,11 @@ import { render } from "./utils"
 import { LockCard } from "@/components/locks/LockCard"
 import { mockLock, mockLpLock, VALID_PUBLIC_KEY } from "./mocks"
 import type { Lock } from "@/types/lock"
+
+vi.mock("@/hooks/useWallet", () => ({
+  useWallet: vi.fn(),
+  WalletProvider: ({ children }: { children: ReactNode }) => children,
+}))
 
 // Mock useVerifiedToken — not relevant to card rendering tests
 vi.mock("@/hooks/useVerifiedToken", () => ({
@@ -57,7 +63,13 @@ describe("LockCard", () => {
   it("renders as a link pointing to the lock detail page", () => {
     render(<LockCard lock={mockLock} />)
     const link = screen.getByRole("link")
-    expect(link).toHaveAttribute("href", `/app/lock/${mockLock.id}`)
+    expect(link).toHaveAttribute("href", `/app/lock/token/${mockLock.id}`)
+  })
+
+  it("includes the lock kind in an LP lock detail link", () => {
+    render(<LockCard lock={mockLpLock} />)
+    const link = screen.getByRole("link")
+    expect(link).toHaveAttribute("href", `/app/lock/lp/${mockLpLock.id}`)
   })
 
   it("renders the CountdownTimer and LockProgressBar", () => {

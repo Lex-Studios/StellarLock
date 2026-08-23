@@ -206,7 +206,7 @@ export function CreateLpLockForm() {
         title: t("notifications.center.lockCreatedTitle"),
         message: t("notifications.center.lockCreatedMessage", { id, date: formatDate(unlockTs) }),
       })
-      void navigate(`/app/lock/${id}`)
+      void navigate(`/app/lock/lp/${id}`)
     } catch (err: unknown) {
       log.error("[createLpLock error]", err)
       setShowConfirm(false)

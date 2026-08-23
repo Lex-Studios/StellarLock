@@ -6,6 +6,13 @@ import { render } from "./utils"
 import { CreateLpLockForm } from "@/components/locks/CreateLpLockForm"
 import { mockWallet, VALID_CONTRACT_ADDRESS } from "./mocks"
 
+const mockNavigate = vi.fn()
+
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-router-dom")>()
+  return { ...actual, useNavigate: () => mockNavigate }
+})
+
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockWallet,
   WalletProvider: ({ children }: { children: ReactNode }) => children,
@@ -177,6 +184,27 @@ describe("LP Lock Creation Flow", () => {
         mockWallet.signTransaction,
         expect.any(Function),
       )
+    })
+  })
+
+  it("navigates to the LP detail route after creating a lock", async () => {
+    const user = userEvent.setup()
+    render(<CreateLpLockForm />)
+
+    await user.type(screen.getByLabelText(/pool share token address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/token a address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/lp amount/i), "100")
+
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 30)
+    await user.type(screen.getByLabelText(/unlock date/i), futureDate.toISOString().split("T")[0])
+
+    await user.click(screen.getByRole("button", { name: /lock liquidity/i }))
+    await user.click(await screen.findByRole("button", { name: /confirm & lock/i }))
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/app/lock/lp/2")
     })
   })
 
