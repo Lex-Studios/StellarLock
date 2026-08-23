@@ -18,6 +18,16 @@ const NOTIFICATION_TYPES: { type: NotificationType; label: string; description: 
     required: true,
   },
   {
+    type: "lock_withdrawn",
+    label: "Withdrawal Confirmed",
+    description: "Notify when tokens are withdrawn from a lock",
+  },
+  {
+    type: "lock_extended",
+    label: "Lock Extended",
+    description: "Notify when a lock's unlock date is extended",
+  },
+  {
     type: "unlock_reminder",
     label: "Unlock Reminder",
     description: "Reminder before lock unlock date",

@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
-import { MemoryRouter } from "react-router-dom"
+import { MemoryRouter, type NavigateFunction } from "react-router-dom"
 import "@/i18n"
 import { CreateTokenLockForm } from "@/components/locks/CreateTokenLockForm"
+import { addTransaction } from "@/lib/transaction-history"
 
 const mockSignTransaction = vi.fn()
 
@@ -26,12 +27,12 @@ vi.mock("@/lib/token-locker", () => ({
   createTokenLock: vi.fn().mockResolvedValue({ id: "42", txHash: "deadbeef" }),
 }))
 
-const addTransactionMock = vi.fn()
+const addTransactionMock = vi.fn<typeof addTransaction>()
 vi.mock("@/lib/transaction-history", () => ({
-  addTransaction: (...args: unknown[]) => addTransactionMock(...args),
+  addTransaction: (...args: Parameters<typeof addTransaction>) => addTransactionMock(...args),
 }))
 
-const navigateMock = vi.fn()
+const navigateMock = vi.fn<NavigateFunction>()
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom")
   return { ...actual, useNavigate: () => navigateMock }
@@ -73,6 +74,9 @@ describe("CreateTokenLockForm", () => {
     })
     expect(navigateMock).toHaveBeenCalledWith(
       "/app/lock-created",
+      // vitest types `expect.objectContaining`'s return as `any`, so this nested
+      // matcher can't be assigned without tripping no-unsafe-assignment.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       expect.objectContaining({ state: expect.objectContaining({ lockId: "42", txHash: "deadbeef" }) }),
     )
   })

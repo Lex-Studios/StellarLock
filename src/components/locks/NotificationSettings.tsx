@@ -71,8 +71,8 @@ export function NotificationSettings({ lockId, unlockAt, address }: Props) {
         try {
           await unsubscribeNotifications(lockId, address)
           update({ email: undefined })
-        } catch (err) {
-          setEmailError(err instanceof Error ? err.message : t("notifications.emailError"))
+        } catch {
+          setEmailError(t("notifications.emailError"))
         } finally {
           setEmailLoading(false)
         }
@@ -91,8 +91,8 @@ export function NotificationSettings({ lockId, unlockAt, address }: Props) {
       update({ email })
       setEmailSaved(true)
       setTimeout(() => setEmailSaved(false), 2000)
-    } catch (err) {
-      setEmailError(err instanceof Error ? err.message : t("notifications.emailError"))
+    } catch {
+      setEmailError(t("notifications.emailError"))
     } finally {
       setEmailLoading(false)
     }
@@ -138,7 +138,10 @@ export function NotificationSettings({ lockId, unlockAt, address }: Props) {
               type="email"
               placeholder={t("notifications.emailPlaceholder")}
               value={emailInput}
-              onChange={(e) => { setEmailInput(e.target.value); setEmailError(null) }}
+              onChange={(e) => {
+                setEmailInput(e.target.value)
+                setEmailError(null)
+              }}
               className="flex-1 text-xs"
               aria-label={t("notifications.email")}
               aria-invalid={emailError != null}

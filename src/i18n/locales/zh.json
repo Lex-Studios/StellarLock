@@ -7,6 +7,7 @@
     "loading": "加载中…",
     "tryAgain": "重试",
     "back": "返回",
+    "dismiss": "关闭",
     "you": "你",
     "stellar": "Stellar",
     "skipToContent": "跳转到主要内容"
@@ -81,6 +82,21 @@
     "insufficientBalance": "余额不足。你有 {{balance}}，但需要 {{amount}}。",
     "needsApproval": "在锁定之前，你需要授权合约转移你的代币。",
     "approveAndContinue": "授权并继续",
+    "vestingTemplate": "归属计划",
+    "vestingTemplateHint": "选择预设的归属计划或设置自定义解锁日期。",
+    "vestingTemplateCustom": "自定义",
+    "vestingTemplateLinear6m": "6个月线性",
+    "vestingTemplateLinear1y": "1年线性",
+    "vestingTemplateLinear2y": "2年线性",
+    "vestingTemplateQuarterly": "季度（每季度25%）",
+    "vestingStart": "归属开始",
+    "vestingEnd": "归属结束",
+    "metadataTitle": "项目信息（可选）",
+    "metadataDesc": "显示在锁定的详细页面和浏览器上，以便社区验证谁锁定了此项目。",
+    "description": "描述",
+    "descriptionPlaceholder": "这个锁定是为了什么？",
+    "projectUrl": "项目网址",
+    "logoUrl": "Logo 网址",
     "approving": "授权中…"
   },
   "lpForm": {
@@ -183,6 +199,8 @@
     "tokensSecured": "已保护代币",
     "viewAll": "查看所有锁定",
     "noLocks": "未找到此代币的锁定。",
+    "recentActivity": "近期活动",
+    "noRecentActivity": "暂无近期活动。",
     "searchHint": "按代币符号或合约地址搜索特定锁定。"
   },
   "search": {
@@ -211,6 +229,12 @@
     "unlocksIn": "解锁倒计时",
     "lock": "锁定 #{{id}}",
     "view": "查看"
+  },
+  "wallet": {
+    "disconnected": "钱包已断开",
+    "disconnectedDesc": "您的 Freighter 钱包已断开连接或扩展程序不可用。请重新连接以继续。",
+    "networkChanged": "网络已更改",
+    "networkChangedDesc": "您的钱包网络已更改。请重新连接以继续使用 StellarLock。"
   },
   "breadcrumbs": {
     "home": "Home",

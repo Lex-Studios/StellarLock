@@ -12,12 +12,12 @@ use crate::calculate_vested;
 
 // Keep amounts in a practical range: 1 stroop to 10 billion tokens.
 fn amount_strategy() -> impl Strategy<Value = i128> {
-    (1_i128..=10_000_000_000_0000000_i128)
+    1_i128..=100_000_000_000_000_000_i128
 }
 
 // Timestamps in a realistic range (unix seconds, year 2020–2100).
 fn ts_strategy() -> impl Strategy<Value = u64> {
-    (1_577_836_800_u64..=4_102_444_800_u64)
+    1_577_836_800_u64..=4_102_444_800_u64
 }
 
 // ── Invariant 1: vested amount is always within [0, total_amount] ─────────────

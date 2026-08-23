@@ -7,6 +7,7 @@
     "loading": "Yükleniyor…",
     "tryAgain": "Tekrar dene",
     "back": "Geri",
+    "dismiss": "Kapat",
     "you": "Sen",
     "stellar": "Stellar",
     "skipToContent": "Ana içeriğe geç"
@@ -81,7 +82,16 @@
     "insufficientBalance": "Yetersiz bakiye. {{balance}} var ama {{amount}} gerekli.",
     "needsApproval": "Kilitlemeden önce sözleşmenin tokenlerinizi transfer etmesine izin vermeniz gerekiyor.",
     "approveAndContinue": "Onayla ve Devam Et",
-    "approving": "Onaylanıyor…"
+    "approving": "Onaylanıyor…",
+    "vestingEnd": "Hakediş bitiş",
+    "vestingStart": "Hakediş başlangıç",
+    "vestingTemplate": "Hakediş planı",
+    "vestingTemplateCustom": "Özel",
+    "vestingTemplateHint": "Hazır bir hakediş planı seçin veya özel bir kilit açma tarihi belirleyin.",
+    "vestingTemplateLinear1y": "1 yıllık doğrusal",
+    "vestingTemplateLinear2y": "2 yıllık doğrusal",
+    "vestingTemplateLinear6m": "6 aylık doğrusal",
+    "vestingTemplateQuarterly": "Çeyrek dönem (%25 her çeyrek)"
   },
   "lpForm": {
     "dex": "DEX",
@@ -178,6 +188,8 @@
     "recentLocks": "Son Kilitler",
     "upcomingUnlocks": "Yaklaşan Kilit Açılmaları",
     "featuredTokens": "Öne Çıkan Tokenler",
+    "recentActivity": "Son Etkinlikler",
+    "noRecentActivity": "Henüz etkinlik yok.",
     "totalLocks": "Toplam Kilit",
     "totalValueLocked": "Toplam Kilitli Değer",
     "tokensSecured": "Güvence Altına Alınan Tokenler",
@@ -205,6 +217,12 @@
     "enable": "Etkinleştir",
     "enabled": "Etkin",
     "save": "Kaydet"
+  },
+  "wallet": {
+    "disconnected": "Cüzdan bağlantısı kesildi",
+    "disconnectedDesc": "Freighter cüzdanınızın bağlantısı kesildi veya eklenti kullanılamaz hale geldi. Devam etmek için lütfen yeniden bağlanın.",
+    "networkChanged": "Ağ değişti",
+    "networkChangedDesc": "Cüzdanınızın ağı değişti. StellarLock'u kullanmaya devam etmek için lütfen yeniden bağlanın."
   },
   "lockCard": {
     "lockedAmount": "Kilitli miktar",

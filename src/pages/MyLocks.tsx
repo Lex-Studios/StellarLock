@@ -1,12 +1,13 @@
-import { useMemo, useState, useCallback } from "react"
+import { useMemo, useState, useCallback, useRef, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Plus, Wallet, Layers, Search, CheckSquare, LayoutGrid, Table2 } from "lucide-react"
+import { Plus, Wallet, Layers, Search, CheckSquare, LayoutGrid, Table2, Download, ChevronDown } from "lucide-react"
 import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { useWallet } from "@/hooks/useWallet"
 import { useMyLocks } from "@/hooks/useLocks"
 import { extendLock, transferBeneficiary } from "@/lib/token-locker"
 import { extendLpLock, transferLpBeneficiary } from "@/lib/lp-locker"
+import { exportToCSV, exportToJSON } from "@/lib/export"
 import { Tabs } from "@/components/ui/Tabs"
 import { Button } from "@/components/ui/Button"
 import { StatCard } from "@/components/ui/StatCard"
@@ -17,8 +18,7 @@ import { BulkActionsToolbar } from "@/components/locks/BulkActionsToolbar"
 import { BulkConfirmModal } from "@/components/locks/BulkConfirmModal"
 import { ConnectGate } from "@/components/layout/ConnectGate"
 import { SkeletonLockCard, SkeletonStatCard } from "@/components/ui/Skeleton"
-import { cn, formatUsd, notify } from "@/lib/utils"
-import { formatUsd } from "@/lib/utils"
+import { cn, formatUsd } from "@/lib/utils"
 import type { Lock, LockStatus } from "@/types/lock"
 
 type Tab = "created" | "received"
@@ -63,6 +63,8 @@ export function MyLocks() {
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkAction, setBulkAction] = useState<BulkAction>(null)
+  const [exportOpen, setExportOpen] = useState(false)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
 
   const created = data?.created ?? []
   const received = data?.received ?? []
@@ -106,10 +108,7 @@ export function MyLocks() {
       })
   }, [rawList, search, statusFilter, kindFilter, sortKey])
 
-  const selectedLocks = useMemo(
-    () => filteredList.filter((l) => selectedIds.has(l.id)),
-    [filteredList, selectedIds],
-  )
+  const selectedLocks = useMemo(() => filteredList.filter((l) => selectedIds.has(l.id)), [filteredList, selectedIds])
 
   const allSelected = filteredList.length > 0 && filteredList.every((l) => selectedIds.has(l.id))
 
@@ -135,13 +134,39 @@ export function MyLocks() {
     setSelectedIds(new Set())
   }
 
+  const handleExportCSV = useCallback(() => {
+    const filename = `stellar-locks-${tab}-${new Date().toISOString().split("T")[0]}.csv`
+    exportToCSV(filteredList, filename)
+    setExportOpen(false)
+  }, [filteredList, tab])
+
+  const handleExportJSON = useCallback(() => {
+    const filename = `stellar-locks-${tab}-${new Date().toISOString().split("T")[0]}.json`
+    exportToJSON(filteredList, filename)
+    setExportOpen(false)
+  }, [filteredList, tab])
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setExportOpen(false)
+      }
+    }
+    if (exportOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+      return () => document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [exportOpen])
+
   const handleBulkExtend = useCallback(
-    async (newDate: string, onItemSettled: (id: string, outcome: { status: "success" | "error"; error?: string }) => void) => {
+    async (
+      newDate: string,
+      onItemSettled: (id: string, outcome: { status: "success" | "error"; error?: string }) => void,
+    ) => {
       const newUnlockSecs = Math.floor(new Date(newDate).getTime() / 1000)
       for (const lock of selectedLocks) {
         if (Math.floor(lock.unlockAt / 1000) >= newUnlockSecs) {
           onItemSettled(lock.id, { status: "success" })
-          succeeded += 1
           continue
         }
         try {
@@ -151,10 +176,8 @@ export function MyLocks() {
             await extendLock(lock.id, newUnlockSecs, address!, signTransaction)
           }
           onItemSettled(lock.id, { status: "success" })
-          succeeded += 1
-        } catch (err) {
-          onItemSettled(lock.id, { status: "error", error: err instanceof Error ? err.message : "Extend failed" })
-          failed += 1
+        } catch {
+          onItemSettled(lock.id, { status: "error", error: "Extend failed" })
         }
       }
       reload()
@@ -164,9 +187,10 @@ export function MyLocks() {
   )
 
   const handleBulkTransfer = useCallback(
-    async (newBeneficiary: string, onItemSettled: (id: string, outcome: { status: "success" | "error"; error?: string }) => void) => {
-      let succeeded = 0
-      let failed = 0
+    async (
+      newBeneficiary: string,
+      onItemSettled: (id: string, outcome: { status: "success" | "error"; error?: string }) => void,
+    ) => {
       for (const lock of selectedLocks) {
         try {
           if (lock.kind === "lp") {
@@ -175,10 +199,8 @@ export function MyLocks() {
             await transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction)
           }
           onItemSettled(lock.id, { status: "success" })
-          succeeded += 1
-        } catch (err) {
-          onItemSettled(lock.id, { status: "error", error: err instanceof Error ? err.message : "Transfer failed" })
-          failed += 1
+        } catch {
+          onItemSettled(lock.id, { status: "error", error: "Transfer failed" })
         }
       }
       reload()
@@ -200,6 +222,34 @@ export function MyLocks() {
             <p className="mt-2 text-muted-foreground">{t("myLocks.subtitle")}</p>
           </div>
           <div className="flex gap-2">
+            <div className="relative" ref={exportMenuRef}>
+              <Button
+                variant="outline"
+                onClick={() => setExportOpen(!exportOpen)}
+                disabled={filteredList.length === 0}
+                title={filteredList.length === 0 ? "No locks to export" : "Export locks"}
+              >
+                <Download className="h-4 w-4" />
+                Export
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </Button>
+              {exportOpen && (
+                <div className="absolute right-0 mt-2 w-48 rounded-lg border border-border bg-background shadow-lg z-10">
+                  <button
+                    onClick={handleExportCSV}
+                    className="block w-full px-4 py-2 text-left text-sm hover:bg-primary/10 rounded-t-lg"
+                  >
+                    Export as CSV
+                  </button>
+                  <button
+                    onClick={handleExportJSON}
+                    className="block w-full px-4 py-2 text-left text-sm hover:bg-primary/10 rounded-b-lg border-t border-border"
+                  >
+                    Export as JSON
+                  </button>
+                </div>
+              )}
+            </div>
             <Button
               variant="outline"
               onClick={() => {
@@ -266,9 +316,7 @@ export function MyLocks() {
               title="Card view"
               className={cn(
                 "inline-flex items-center justify-center rounded-md p-1.5 transition-colors cursor-pointer",
-                viewMode === "card"
-                  ? "bg-secondary text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
+                viewMode === "card" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
               <LayoutGrid className="h-4 w-4" />
@@ -281,9 +329,7 @@ export function MyLocks() {
               title="Table view"
               className={cn(
                 "inline-flex items-center justify-center rounded-md p-1.5 transition-colors cursor-pointer",
-                viewMode === "table"
-                  ? "bg-secondary text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
+                viewMode === "table" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
               <Table2 className="h-4 w-4" />
@@ -298,7 +344,10 @@ export function MyLocks() {
             <input
               type="search"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
               placeholder="Search by token symbol or lock ID…"
               className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
@@ -306,7 +355,10 @@ export function MyLocks() {
 
           <select
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value as LockStatus | "all"); setPage(1) }}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as LockStatus | "all")
+              setPage(1)
+            }}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
             aria-label="Filter by status"
           >
@@ -318,7 +370,10 @@ export function MyLocks() {
 
           <select
             value={kindFilter}
-            onChange={(e) => { setKindFilter(e.target.value as "all" | "token" | "lp"); setPage(1) }}
+            onChange={(e) => {
+              setKindFilter(e.target.value as "all" | "token" | "lp")
+              setPage(1)
+            }}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
             aria-label="Filter by type"
           >
@@ -352,12 +407,7 @@ export function MyLocks() {
           viewMode={viewMode}
         />
 
-        <Pagination
-          page={page}
-          pageSize={PAGE_SIZE}
-          total={totalForTab}
-          onChange={setPage}
-        />
+        <Pagination page={page} pageSize={PAGE_SIZE} total={totalForTab} onChange={setPage} />
 
         {/* Bulk actions toolbar */}
         {selectMode && (
@@ -444,15 +494,15 @@ function LockListView({
           {hasFilters
             ? "No locks match your filters"
             : tab === "created"
-            ? t("myLocks.noLocksCreated")
-            : t("myLocks.noBeneficiary")}
+              ? t("myLocks.noLocksCreated")
+              : t("myLocks.noBeneficiary")}
         </h3>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
           {hasFilters
             ? "Try adjusting your search or filters."
             : tab === "created"
-            ? t("myLocks.noLocksCreatedDesc")
-            : t("myLocks.noBeneficiaryDesc")}
+              ? t("myLocks.noLocksCreatedDesc")
+              : t("myLocks.noBeneficiaryDesc")}
         </p>
         {!hasFilters && tab === "created" && (
           <Link to="/app/create">
@@ -469,12 +519,7 @@ function LockListView({
   if (viewMode === "table") {
     return (
       <div className="mt-6">
-        <LockTable
-          locks={locks}
-          selectable={selectable}
-          selectedIds={selectedIds}
-          onSelect={onSelect}
-        />
+        <LockTable locks={locks} selectable={selectable} selectedIds={selectedIds} onSelect={onSelect} />
       </div>
     )
   }

@@ -1,7 +1,6 @@
 {
   "name": "stellarlock",
   "version": "0.1.0",
-
   "description": "StellarLock — secure liquidity locking for Stellar/Soroban",
   "license": "MIT",
   "repository": {
@@ -18,12 +17,10 @@
     "defi"
   ],
   "engines": {
-    "node": ">=18"
+    "node": "22"
   },
-
   "private": true,
   "type": "module",
-
   "scripts": {
     "dev": "vite --host",
     "dev:testnet": "cp .env.testnet .env && vite --host",
@@ -42,6 +39,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:update": "playwright test --update-snapshots",
+    "test:i18n": "vitest run src/test/i18n-locales.test.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -50,15 +48,20 @@
     "changelog": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -r 0",
     "changelog:release": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s"
   },
-
   "pnpm": {
     "overrides": {
       "protobufjs": "^7.5.6",
       "vite": ">=6.4.3",
-      "vitest": "^3.2.6"
+      "vitest": "^3.2.6",
+      "brace-expansion": ">=2.1.4",
+      "js-yaml": ">=4.3.1",
+      "fast-uri": ">=3.1.5",
+      "ip-address": ">=10.3.1",
+      "react-router": ">=7.18.2",
+      "nanoid": ">=3.3.18",
+      "postcss": ">=8.5.18"
     }
   },
-
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^1.7.6",
     "@stellar/freighter-api": "^6.0.1",
@@ -81,7 +84,6 @@
     "tailwind-merge": "^3.3.1",
     "web-vitals": "^4.0.1"
   },
-
   "devDependencies": {
     "@commitlint/cli": "^19",
     "@commitlint/config-conventional": "^19",
@@ -101,6 +103,32 @@
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@vitejs/plugin-react": "^6.0.2"
+    "@vitejs/plugin-react": "^6.0.2",
+    "@vitest/ui": "^3.2.6",
+    "conventional-changelog-cli": "^5",
+    "eslint": "^9",
+    "eslint-config-prettier": "^10",
+    "eslint-plugin-react-hooks": "^5",
+    "eslint-plugin-react-refresh": "^0.4",
+    "husky": "^9",
+    "jsdom": "^30.0.0",
+    "lint-staged": "^15",
+    "prettier": "^3",
+    "storybook": "^8.6.18",
+    "tailwindcss": "^4",
+    "typescript": "5.7.3",
+    "typescript-eslint": "^8",
+    "vite": "^8.1.0",
+    "vitest": "^3.2.7",
+    "vitest-axe": "^0.1.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,html}": [
+      "prettier --write"
+    ]
   }
 }

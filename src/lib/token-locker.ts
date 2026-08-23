@@ -1,6 +1,6 @@
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Lock, LockMetadata, TokenLockSummary } from "@/types/lock"
-import { CONTRACTS, simulateCall, submitCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
+import { CONTRACTS, simulateCall, submitCallWithHash, type TxPhase } from "@/lib/stellar"
 import { getOnChainTokenMeta, type OnChainTokenMeta } from "@/lib/token-metadata"
 
 export interface CreateTokenLockArgs {
@@ -20,7 +20,10 @@ function toLock(raw: Record<string, unknown>, meta?: OnChainTokenMeta): Lock {
   const decimals = meta?.decimals ?? 7
   const multiplier = 10 ** decimals
 
+  // Vesting is stored non-optionally on-chain using a sentinel schedule
+  // (start == 0 && end == 0) to mean "no vesting".
   const vestingRaw = raw.vesting as { start: bigint; end: bigint; released: bigint } | null | undefined
+  const hasVesting = vestingRaw != null && !(Number(vestingRaw.start) === 0 && Number(vestingRaw.end) === 0)
   const metadata = parseMetadata(raw.metadata)
 
   return {
@@ -40,7 +43,7 @@ function toLock(raw: Record<string, unknown>, meta?: OnChainTokenMeta): Lock {
     createdAt: Number(raw.created_at) * 1000,
     unlockAt: Number(raw.unlock_at) * 1000,
     extendedCount: Number(raw.extended_count),
-    vesting: vestingRaw
+    vesting: hasVesting
       ? {
           start: Number(vestingRaw.start) * 1000,
           end: Number(vestingRaw.end) * 1000,
@@ -367,7 +370,7 @@ export async function withdrawLock(
  * @param sourceAddress - Address submitting the transaction; must equal the lock's current `beneficiary`.
  * @param signTransaction - Callback that signs the built transaction XDR and returns signed XDR.
  * @param onProgress - Optional callback invoked with each {@link TxPhase} during submission.
- * @returns Resolves with no value on success.
+ * @returns The submission `txHash`.
  * @throws {Error} Wrapping one of the contract's `ContractError` variants, notably:
  *   - `AlreadyWithdrawn` (3) — the lock has already been withdrawn and can no longer be reassigned.
  * @throws {Error} `Simulation error: ...` / `Send error: ...` / `Transaction failed: ...` if
@@ -379,8 +382,8 @@ export async function transferBeneficiary(
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
   onProgress?: (phase: TxPhase) => void,
-): Promise<void> {
-  await submitCall(
+): Promise<{ txHash: string }> {
+  const { txHash } = await submitCallWithHash<void>(
     CONTRACTS.tokenLocker,
     "transfer_beneficiary",
     [idArg(id), addressArg(newBeneficiary)],
@@ -388,6 +391,7 @@ export async function transferBeneficiary(
     signTransaction,
     onProgress,
   )
+  return { txHash }
 }
 
 /**

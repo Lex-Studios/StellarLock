@@ -1,6 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { rpc as SorobanRpc } from "@stellar/stellar-sdk"
-import { invalidateRpcCache, simulateCall } from "@/lib/stellar"
+import { rpc as SorobanRpc, nativeToScVal } from "@stellar/stellar-sdk"
+import { getTokenAllowance, getTokenBalance, invalidateRpcCache, simulateCall } from "@/lib/stellar"
+import { getOnChainTokenMeta } from "@/lib/token-metadata"
+
+// Mock the token-metadata module so we can control the on-chain decimals that
+// getTokenBalance / getTokenAllowance use for the raw-amount → whole-token
+// conversion (regression for #509).
+vi.mock("@/lib/token-metadata", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/token-metadata")>()
+  return {
+    ...actual,
+    getOnChainTokenMeta: vi.fn(),
+  }
+})
 
 // Real success responses have several fields; the RpcClient (and the
 // isSimulationError() check it relies on) only cares that "error" is absent.
@@ -109,5 +121,91 @@ describe("RpcClient (exercised via simulateCall) — caching, dedup, rate limiti
 
     gates.slice(1).forEach((g) => g.resolve(SUCCESS_RESULT))
     await Promise.all(calls)
+  })
+})
+
+// ── #509: getTokenBalance / getTokenAllowance use per-token decimals ─────────
+describe("getTokenBalance / getTokenAllowance decimals conversion (#509)", () => {
+  const TOKEN_ADDRESS = "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+  const OWNER = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
+  const SPENDER = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
+
+  let simulateSpy: ReturnType<typeof spyOnSimulateTransaction>
+  let metaMock: ReturnType<typeof vi.fn>
+
+  // Wrap a raw on-chain i128 value in the same response shape simulateCall
+  // reads (`result.retval`, converted via scValToNative). Each test controls
+  // the raw units and the mocked decimals so the conversion divides by
+  // 10 ** decimals, not the old hard-coded 1e7.
+  function rawResult(raw: bigint): SorobanRpc.Api.SimulateTransactionResponse {
+    return {
+      result: {
+        retval: nativeToScVal(raw, { type: "i128" }),
+      },
+    } as unknown as SorobanRpc.Api.SimulateTransactionResponse
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-01-01T00:00:00Z"))
+    invalidateRpcCache()
+    simulateSpy = spyOnSimulateTransaction()
+    metaMock = vi.mocked(getOnChainTokenMeta)
+    metaMock.mockReset()
+    // Default: the existing 7-decimal path (e.g. native XLM-wrapped assets).
+    metaMock.mockResolvedValue({ symbol: "XLM", name: "Stellar Lumens", decimals: 7 })
+  })
+
+  afterEach(() => {
+    simulateSpy.mockRestore()
+    metaMock.mockReset()
+    vi.useRealTimers()
+  })
+
+  it("divides a 6-decimal token's raw balance by 10^6, not 1e7 (balance)", async () => {
+    metaMock.mockResolvedValue({ symbol: "USDC", name: "USD Coin", decimals: 6 })
+    simulateSpy.mockResolvedValue(rawResult(1_234_567n)) // 1.234567 USDC
+
+    const balance = await getTokenBalance(TOKEN_ADDRESS, OWNER)
+
+    expect(balance).toBeCloseTo(1.234567, 6)
+    // The old hard-coded value (1e7) would have produced 0.1234567.
+    expect(balance).not.toBeCloseTo(0.1234567, 6)
+  })
+
+  it("keeps 7-decimal tokens unchanged (balance)", async () => {
+    simulateSpy.mockResolvedValue(rawResult(12_345_678n)) // 1.2345678 XLM
+
+    const balance = await getTokenBalance(TOKEN_ADDRESS, OWNER)
+
+    expect(balance).toBeCloseTo(1.2345678, 6)
+  })
+
+  it("divides a 6-decimal token's raw allowance by 10^6, not 1e7 (allowance)", async () => {
+    metaMock.mockResolvedValue({ symbol: "USDC", name: "USD Coin", decimals: 6 })
+    simulateSpy.mockResolvedValue(rawResult(500_000n)) // 0.5 USDC allowance
+
+    const allowance = await getTokenAllowance(TOKEN_ADDRESS, OWNER, SPENDER)
+
+    expect(allowance).toBeCloseTo(0.5, 6)
+    expect(allowance).not.toBeCloseTo(0.05, 6)
+  })
+
+  it("keeps 7-decimal tokens unchanged (allowance)", async () => {
+    simulateSpy.mockResolvedValue(rawResult(7_000_000n)) // 0.7 XLM allowance
+
+    const allowance = await getTokenAllowance(TOKEN_ADDRESS, OWNER, SPENDER)
+
+    expect(allowance).toBeCloseTo(0.7, 6)
+  })
+
+  it("converts an 18-decimal token correctly (large divisor beyond stroops)", async () => {
+    metaMock.mockResolvedValue({ symbol: "WETH", name: "Wrapped Ether", decimals: 18 })
+    // 1.5e18 raw units → 1.5 whole tokens
+    simulateSpy.mockResolvedValue(rawResult(1_500_000_000_000_000_000n))
+
+    const balance = await getTokenBalance(TOKEN_ADDRESS, OWNER)
+
+    expect(balance).toBeCloseTo(1.5, 6)
   })
 })

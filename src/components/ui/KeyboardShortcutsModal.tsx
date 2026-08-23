@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useRef } from "react"
 import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { X } from "lucide-react"
 

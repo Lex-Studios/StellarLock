@@ -34,6 +34,11 @@ const NO_COUNT_TABS: TabItem[] = [
  * Click each tab to see the active state switch.
  */
 export const TwoTabsInteractive: Story = {
+  args: {
+    items: TWO_TABS,
+    value: "created",
+    onChange: () => {},
+  },
   render: () => {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const [tab, setTab] = useState("created")
@@ -66,6 +71,11 @@ export const SecondTabActive: Story = {
 
 /** Four tabs — demonstrates layout with more options and mixed count/no-count items. */
 export const ManyTabsInteractive: Story = {
+  args: {
+    items: MANY_TABS,
+    value: "all",
+    onChange: () => {},
+  },
   render: () => {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const [tab, setTab] = useState("all")
@@ -80,6 +90,11 @@ export const ManyTabsInteractive: Story = {
 
 /** Tabs without counts — verifies the count badge is omitted cleanly. */
 export const NoCountBadges: Story = {
+  args: {
+    items: NO_COUNT_TABS,
+    value: "tokens",
+    onChange: () => {},
+  },
   render: () => {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const [tab, setTab] = useState("tokens")

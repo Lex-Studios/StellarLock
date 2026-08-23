@@ -34,7 +34,10 @@ export function HealthPage() {
         }
       } catch (err) {
         if (active) {
-          setError(err instanceof Error ? err.message : "Health check failed")
+          const sanitized = import.meta.env.DEV && err instanceof Error
+            ? err.message
+            : "Health check failed"
+          setError(sanitized)
         }
       } finally {
         if (active) {

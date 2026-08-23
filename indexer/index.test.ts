@@ -1,14 +1,14 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { Keypair, nativeToScVal, xdr } from '@stellar/stellar-sdk'
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest"
+import { mkdtempSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { Keypair, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 
 // The db module reads LOCK_INDEX_DB_PATH at import time, so the indexer is
 // imported dynamically after pointing it at a throwaway database file.
-type Indexer = typeof import('./index')
+type Indexer = typeof import("./index")
 
-const tmpDir = mkdtempSync(join(tmpdir(), 'lock-indexer-test-'))
+const tmpDir = mkdtempSync(join(tmpdir(), "lock-indexer-test-"))
 let indexer: Indexer
 
 const creator = Keypair.random().publicKey()
@@ -23,9 +23,9 @@ const lpUnlockAt = now + 172_800
 const extendedUnlockAt = now + 259_200
 
 const sym = (s: string) => xdr.ScVal.scvSymbol(s)
-const u64 = (n: number | bigint) => nativeToScVal(n, { type: 'u64' })
-const i128 = (n: bigint) => nativeToScVal(n, { type: 'i128' })
-const addr = (a: string) => nativeToScVal(a, { type: 'address' })
+const u64 = (n: number | bigint) => nativeToScVal(n, { type: "u64" })
+const i128 = (n: bigint) => nativeToScVal(n, { type: "i128" })
+const addr = (a: string) => nativeToScVal(a, { type: "address" })
 
 interface FakeEvent {
   id: string
@@ -44,15 +44,18 @@ interface FakeBatch {
 class FakeRpcServer {
   requests: unknown[] = []
   private batches: FakeBatch[]
-  constructor(batches: FakeBatch[], private latest = 100) {
+  constructor(
+    batches: FakeBatch[],
+    private latest = 100,
+  ) {
     this.batches = [...batches]
   }
-  async getLatestLedger() {
-    return { sequence: this.latest }
+  getLatestLedger() {
+    return Promise.resolve({ sequence: this.latest })
   }
-  async getEvents(request: unknown): Promise<FakeBatch> {
+  getEvents(request: unknown): Promise<FakeBatch> {
     this.requests.push(request)
-    return this.batches.shift() ?? { latestLedger: this.latest, events: [] }
+    return Promise.resolve(this.batches.shift() ?? { latestLedger: this.latest, events: [] })
   }
 }
 
@@ -69,40 +72,56 @@ function makeEvent(id: string, ledger: number, topic: xdr.ScVal[], value?: xdr.S
 // Events mirror the contracts' schemas: token-locker publishes its payload in
 // the topics with unit data; lp-locker withdraw/extend publish (symbol,) topics
 // with a tuple payload in the data.
-const lockCreated = makeEvent('evt-1', 101, [
-  sym('lock_created'), u64(1n), addr(creator), addr(tokenAddr), i128(500n), addr(beneficiary), u64(BigInt(unlockAt)),
+const lockCreated = makeEvent("evt-1", 101, [
+  sym("lock_created"),
+  u64(1n),
+  addr(creator),
+  addr(tokenAddr),
+  i128(500n),
+  addr(beneficiary),
+  u64(BigInt(unlockAt)),
 ])
-const lpLockCreated = makeEvent('evt-2', 102, [
-  sym('lp_lock_created'), u64(1n), addr(creator), addr(poolShareAddr), i128(250n), addr(beneficiary), u64(BigInt(lpUnlockAt)),
+const lpLockCreated = makeEvent("evt-2", 102, [
+  sym("lp_lock_created"),
+  u64(1n),
+  addr(creator),
+  addr(poolShareAddr),
+  i128(250n),
+  addr(beneficiary),
+  u64(BigInt(lpUnlockAt)),
 ])
-const lockWithdrawn = makeEvent('evt-3', 110, [
-  sym('lock_withdrawn'), u64(1n), addr(beneficiary), addr(tokenAddr), i128(500n),
+const lockWithdrawn = makeEvent("evt-3", 110, [
+  sym("lock_withdrawn"),
+  u64(1n),
+  addr(beneficiary),
+  addr(tokenAddr),
+  i128(500n),
 ])
 const lpLockExtended = makeEvent(
-  'evt-4', 111,
-  [sym('lp_lock_extended')],
+  "evt-4",
+  111,
+  [sym("lp_lock_extended")],
   nativeToScVal([u64(1n), addr(creator), u64(BigInt(lpUnlockAt)), u64(BigInt(extendedUnlockAt))]),
 )
 const lpBeneficiaryTransferred = makeEvent(
-  'evt-5', 112,
-  [sym('lp_beneficiary_transferred')],
+  "evt-5",
+  112,
+  [sym("lp_beneficiary_transferred")],
   nativeToScVal([u64(1n), addr(beneficiary), addr(newBeneficiary)]),
 )
 
 beforeAll(async () => {
-  process.env.LOCK_INDEX_DB_PATH = join(tmpDir, 'index.sqlite')
-  indexer = await import('./index')
+  process.env.LOCK_INDEX_DB_PATH = join(tmpDir, "index.sqlite")
+  indexer = await import("./index")
 })
 
 afterAll(() => {
   rmSync(tmpDir, { recursive: true, force: true })
 })
 
-describe('lock indexer', () => {
-  it('indexes lock creation events from a polled event stream', async () => {
-    const server = new FakeRpcServer([
-      { latestLedger: 102, cursor: 'cursor-1', events: [lockCreated, lpLockCreated] },
-    ])
+describe("lock indexer", () => {
+  it("indexes lock creation events from a polled event stream", async () => {
+    const server = new FakeRpcServer([{ latestLedger: 102, cursor: "cursor-1", events: [lockCreated, lpLockCreated] }])
 
     const processed = await indexer.pollOnce(server)
     expect(processed).toBe(2)
@@ -120,39 +139,39 @@ describe('lock indexer', () => {
     const tokenLocks = indexer.getLocksForToken(tokenAddr)
     expect(tokenLocks).toHaveLength(1)
     expect(tokenLocks[0]).toMatchObject({
-      id: 'token:1',
-      kind: 'token',
+      id: "token:1",
+      kind: "token",
       creator,
       beneficiary,
       amount: 500n,
       unlockAt,
-      status: 'locked',
+      status: "locked",
     })
 
     expect(indexer.getLastIndexed()).toBe(102)
   })
 
-  it('resumes from the persisted cursor and applies state-mutating events', async () => {
+  it("resumes from the persisted cursor and applies state-mutating events", async () => {
     const server = new FakeRpcServer([
-      { latestLedger: 112, cursor: 'cursor-2', events: [lockWithdrawn, lpLockExtended, lpBeneficiaryTransferred] },
+      { latestLedger: 112, cursor: "cursor-2", events: [lockWithdrawn, lpLockExtended, lpBeneficiaryTransferred] },
     ])
 
     const processed = await indexer.pollOnce(server)
     expect(processed).toBe(3)
-    expect(server.requests[0]).toMatchObject({ cursor: 'cursor-1' })
+    expect(server.requests[0]).toMatchObject({ cursor: "cursor-1" })
 
     const stats = indexer.getStats()
     expect(stats.totalLocks).toBe(2)
 
     const [tokenLock] = indexer.getLocksForToken(tokenAddr)
-    expect(tokenLock.status).toBe('withdrawn')
+    expect(tokenLock.status).toBe("withdrawn")
     expect(tokenLock.withdrawn).toBe(true)
 
     const [lpLock] = indexer.getLocksForToken(poolShareAddr)
     expect(lpLock).toMatchObject({
-      id: 'lp:1',
-      kind: 'lp',
-      status: 'locked',
+      id: "lp:1",
+      kind: "lp",
+      status: "locked",
       unlockAt: extendedUnlockAt,
       beneficiary: newBeneficiary,
       extendedCount: 1,
@@ -160,14 +179,12 @@ describe('lock indexer', () => {
 
     // Only the still-locked LP lock has an upcoming unlock now.
     expect(stats.upcomingUnlocks).toHaveLength(1)
-    expect(stats.upcomingUnlocks[0].id).toBe('lp:1')
+    expect(stats.upcomingUnlocks[0].id).toBe("lp:1")
     expect(indexer.getLastIndexed()).toBe(112)
   })
 
-  it('ignores replayed events it has already processed', async () => {
-    const server = new FakeRpcServer([
-      { latestLedger: 112, events: [lockCreated, lockWithdrawn] },
-    ])
+  it("ignores replayed events it has already processed", async () => {
+    const server = new FakeRpcServer([{ latestLedger: 112, events: [lockCreated, lockWithdrawn] }])
 
     await indexer.pollOnce(server)
 
@@ -175,34 +192,34 @@ describe('lock indexer', () => {
     expect(stats.totalLocks).toBe(2)
     expect(stats.totalValue).toBe(750n)
     // The replayed lock_created did not resurrect the withdrawn lock.
-    expect(indexer.getLocksForToken(tokenAddr)[0].status).toBe('withdrawn')
+    expect(indexer.getLocksForToken(tokenAddr)[0].status).toBe("withdrawn")
   })
 
-  it('survives a restart: fresh module instances resume from the same database', async () => {
+  it("survives a restart: fresh module instances resume from the same database", async () => {
     vi.resetModules()
-    const restarted: Indexer = await import('./index')
+    const restarted: Indexer = await import("./index")
 
     const server = new FakeRpcServer([{ latestLedger: 120, events: [] }])
     await restarted.pollOnce(server)
 
     // The cursor persisted in SQLite drives the resumed request.
-    expect(server.requests[0]).toMatchObject({ cursor: 'cursor-2' })
+    expect(server.requests[0]).toMatchObject({ cursor: "cursor-2" })
     expect(restarted.getStats().totalLocks).toBe(2)
     expect(restarted.getLastIndexed()).toBe(120)
   })
 
-  it('paginates locks for a token and reports the total independent of the page size', async () => {
+  it("paginates locks for a token and reports the total independent of the page size", () => {
     const page = indexer.getLocksForTokenPage(tokenAddr, 0, 1)
     expect(page.total).toBe(1)
     expect(page.locks).toHaveLength(1)
-    expect(page.locks[0].id).toBe('token:1')
+    expect(page.locks[0].id).toBe("token:1")
 
     const emptyPage = indexer.getLocksForTokenPage(tokenAddr, 5, 10)
     expect(emptyPage.total).toBe(1)
     expect(emptyPage.locks).toHaveLength(0)
   })
 
-  it('aggregates per-token totals across still-locked locks for cross-token views', () => {
+  it("aggregates per-token totals across still-locked locks for cross-token views", () => {
     const topTokens = indexer.getTopTokens()
     // The token-locker lock was withdrawn in an earlier test, so only the
     // still-locked LP lock (indexed under its pool-share address) remains.
@@ -210,9 +227,9 @@ describe('lock indexer', () => {
     expect(topTokens[0]).toMatchObject({ token: poolShareAddr, lockCount: 1, totalLocked: 250n })
   })
 
-  it('runs the polling loop on an interval via startPolling', async () => {
+  it("runs the polling loop on an interval via startPolling", async () => {
     vi.resetModules()
-    const fresh: Indexer = await import('./index')
+    const fresh: Indexer = await import("./index")
 
     const server = new FakeRpcServer([
       { latestLedger: 120, events: [] },

@@ -2,7 +2,7 @@
 
 use soroban_sdk::{
     testutils::{Address as _, Ledger},
-    token, Address, Env,
+    token, Address, Env, IntoVal,
 };
 
 use crate::{ContractError, Dex, LockMetadata, LpLocker, LpLockerClient};
@@ -16,7 +16,9 @@ fn setup_env() -> (Env, Address, Address, Address, Address) {
     let contract_id = env.register(LpLocker, ());
 
     let admin = Address::generate(&env);
-    let pool_share_id = env.register_stellar_asset_contract_v2(admin.clone()).address();
+    let pool_share_id = env
+        .register_stellar_asset_contract_v2(admin.clone())
+        .address();
 
     let token_a = Address::generate(&env);
     let token_b = Address::generate(&env);
@@ -49,8 +51,17 @@ fn create_lp_lock_valid_inputs() {
     mint(&env, &pool_share_id, &creator, 1_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let lock_id = client
-        .create_lock(&creator, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &500_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &500_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     let lock = client.get_lock(&lock_id).expect("lock exists");
     assert_eq!(lock.amount, 500_i128);
@@ -70,7 +81,15 @@ fn create_lp_lock_rejects_zero_amount() {
 
     let unlock_at = env.ledger().timestamp() + 100;
     let result = client.try_create_lock(
-        &creator, &pool_share_id, &Dex::Aquarius, &token_a, &token_b, &0_i128, &beneficiary, &unlock_at, &empty_metadata(&env),
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &0_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
     );
     assert_eq!(result, Err(Ok(ContractError::AmountMustBePositive)));
 }
@@ -84,7 +103,15 @@ fn create_lp_lock_rejects_past_unlock() {
     let beneficiary = Address::generate(&env);
 
     let result = client.try_create_lock(
-        &creator, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &100_i128, &beneficiary, &0_u64, &empty_metadata(&env),
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &0_u64,
+        &empty_metadata(&env),
     );
     assert_eq!(result, Err(Ok(ContractError::UnlockMustBeFuture)));
 }
@@ -101,8 +128,17 @@ fn beneficiary_can_withdraw_after_unlock() {
     mint(&env, &pool_share_id, &creator, 1_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let lock_id = client
-        .create_lock(&creator, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &500_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &500_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     advance_time(&env, 200);
     client.withdraw(&lock_id);
@@ -120,8 +156,17 @@ fn withdraw_fails_before_unlock_at() {
     mint(&env, &pool_share_id, &creator, 1_000);
 
     let unlock_at = env.ledger().timestamp() + 1000;
-    let lock_id = client
-        .create_lock(&creator, &pool_share_id, &Dex::Aquarius, &token_a, &token_b, &100_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     let result = client.try_withdraw(&lock_id);
     assert_eq!(result, Err(Ok(ContractError::StillLocked)));
@@ -137,8 +182,17 @@ fn withdraw_twice_is_rejected() {
     mint(&env, &pool_share_id, &creator, 1_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let lock_id = client
-        .create_lock(&creator, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &100_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     advance_time(&env, 200);
     client.withdraw(&lock_id);
@@ -159,8 +213,17 @@ fn creator_can_extend_lp_lock() {
     mint(&env, &pool_share_id, &creator, 1_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let lock_id = client
-        .create_lock(&creator, &pool_share_id, &Dex::Aquarius, &token_a, &token_b, &100_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     let new_unlock = unlock_at + 500;
     client.extend(&lock_id, &new_unlock);
@@ -180,8 +243,17 @@ fn extend_cannot_decrease_unlock_time() {
     mint(&env, &pool_share_id, &creator, 1_000);
 
     let unlock_at = env.ledger().timestamp() + 1000;
-    let lock_id = client
-        .create_lock(&creator, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &100_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     let result = client.try_extend(&lock_id, &(unlock_at - 1));
     assert_eq!(result, Err(Ok(ContractError::CanOnlyExtend)));
@@ -197,14 +269,67 @@ fn extend_after_withdrawal_fails() {
     mint(&env, &pool_share_id, &creator, 1_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let lock_id = client
-        .create_lock(&creator, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &100_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     advance_time(&env, 200);
     client.withdraw(&lock_id);
 
     let result = client.try_extend(&lock_id, &(unlock_at + 1000));
     assert_eq!(result, Err(Ok(ContractError::AlreadyWithdrawn)));
+}
+
+// ── LockNotFound (#489) ──────────────────────────────────────────────────────
+// load_lock() must return ContractError::LockNotFound instead of panicking with
+// a bare .expect() when the lock id does not exist.
+
+#[test]
+fn withdraw_on_missing_lock_returns_lock_not_found() {
+    let (env, contract_id, _pool_share_id, _token_a, _token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let result = client.try_withdraw(&999_999);
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::LockNotFound)),
+        "expected LockNotFound typed error, not a panic"
+    );
+}
+
+#[test]
+fn extend_on_missing_lock_returns_lock_not_found() {
+    let (env, contract_id, _pool_share_id, _token_a, _token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let result = client.try_extend(&999_999, &(env.ledger().timestamp() + 100));
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::LockNotFound)),
+        "expected LockNotFound typed error, not a panic"
+    );
+}
+
+#[test]
+fn transfer_beneficiary_on_missing_lock_returns_lock_not_found() {
+    let (env, contract_id, _pool_share_id, _token_a, _token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let new_beneficiary = Address::generate(&env);
+    let result = client.try_transfer_beneficiary(&999_999, &new_beneficiary);
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::LockNotFound)),
+        "expected LockNotFound typed error, not a panic"
+    );
 }
 
 // ── Multi-account: beneficiary transfer flow ──────────────────────────────────
@@ -220,8 +345,17 @@ fn transfer_beneficiary_and_new_beneficiary_can_withdraw() {
     mint(&env, &pool_share_id, &creator, 1_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let lock_id = client
-        .create_lock(&creator, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &300_i128, &original_beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &300_i128,
+        &original_beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     client.transfer_beneficiary(&lock_id, &new_beneficiary);
 
@@ -245,12 +379,26 @@ fn transfer_beneficiary_updates_indexes() {
     mint(&env, &pool_share_id, &creator, 1_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let lock_id = client
-        .create_lock(&creator, &pool_share_id, &Dex::Aquarius, &token_a, &token_b, &100_i128, &original_beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &original_beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     client.transfer_beneficiary(&lock_id, &new_beneficiary);
 
-    assert_eq!(client.get_locks_by_beneficiary(&original_beneficiary, &0, &10).len(), 0);
+    assert_eq!(
+        client
+            .get_locks_by_beneficiary(&original_beneficiary, &0, &10)
+            .len(),
+        0
+    );
     let new_locks = client.get_locks_by_beneficiary(&new_beneficiary, &0, &10);
     assert_eq!(new_locks.len(), 1);
     assert_eq!(new_locks.get(0).unwrap().id, lock_id);
@@ -270,22 +418,51 @@ fn get_locks_by_creator_returns_correct_locks() {
     mint(&env, &pool_share_id, &creator_b, 5_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let id1 = client
-        .create_lock(&creator_a, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &100_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
-    let id2 = client
-        .create_lock(&creator_a, &pool_share_id, &Dex::Aquarius, &token_a, &token_b, &200_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
-    client
-        .create_lock(&creator_b, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &300_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
+    let id1 = client.create_lock(
+        &creator_a,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
+    let id2 = client.create_lock(
+        &creator_a,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &200_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
+    client.create_lock(
+        &creator_b,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &300_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     let locks_a = client.get_locks_by_creator(&creator_a, &0, &10);
     assert_eq!(locks_a.len(), 2);
     let ids: soroban_sdk::Vec<u64> = {
         let mut v = soroban_sdk::vec![&env];
-        for l in locks_a.iter() { v.push_back(l.id); }
+        for l in locks_a.iter() {
+            v.push_back(l.id);
+        }
         v
     };
-    assert!(ids.contains(&id1));
-    assert!(ids.contains(&id2));
+    assert!(ids.contains(id1));
+    assert!(ids.contains(id2));
 
     assert_eq!(client.get_locks_by_creator(&creator_b, &0, &10).len(), 1);
 }
@@ -302,21 +479,41 @@ fn get_locks_by_pool_share_works() {
     mint(&env, &pool_share_id, &creator, 5_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let id1 = client
-        .create_lock(&creator, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &200_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
-    let id2 = client
-        .create_lock(&creator, &pool_share_id, &Dex::Aquarius, &token_a, &token_b, &300_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
+    let id1 = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &200_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
+    let id2 = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &300_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     let locks = client.get_locks_by_pool_share(&pool_share_id, &0, &10);
     assert_eq!(locks.len(), 2);
 
     let ids: soroban_sdk::Vec<u64> = {
         let mut v = soroban_sdk::vec![&env];
-        for l in locks.iter() { v.push_back(l.id); }
+        for l in locks.iter() {
+            v.push_back(l.id);
+        }
         v
     };
-    assert!(ids.contains(&id1));
-    assert!(ids.contains(&id2));
+    assert!(ids.contains(id1));
+    assert!(ids.contains(id2));
 }
 
 #[test]
@@ -333,8 +530,28 @@ fn different_pool_shares_have_isolated_indexes() {
     mint(&env, &pool_share_b, &creator, 5_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    client.create_lock(&creator, &pool_share_a, &Dex::Soroswap, &token_a, &token_b, &100_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
-    client.create_lock(&creator, &pool_share_b, &Dex::Aquarius, &token_a, &token_b, &200_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
+    client.create_lock(
+        &creator,
+        &pool_share_a,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
+    client.create_lock(
+        &creator,
+        &pool_share_b,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &200_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     assert_eq!(client.get_lock_count_by_pool_share(&pool_share_a), 1);
     assert_eq!(client.get_lock_count_by_pool_share(&pool_share_b), 1);
@@ -352,10 +569,28 @@ fn lp_tvl_increases_on_create_decreases_on_withdraw() {
     mint(&env, &pool_share_id, &creator, 5_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let lock_id_1 = client
-        .create_lock(&creator, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &400_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
-    client
-        .create_lock(&creator, &pool_share_id, &Dex::Aquarius, &token_a, &token_b, &600_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
+    let lock_id_1 = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &400_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
+    client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &600_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     assert_eq!(client.get_total_locked(&pool_share_id), 1_000_i128);
 
@@ -383,12 +618,108 @@ fn lp_global_stats_counts_unique_pool_shares() {
     mint(&env, &pool_share_b, &creator, 5_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    client.create_lock(&creator, &pool_share_a, &Dex::Soroswap, &token_a, &token_b, &100_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
-    client.create_lock(&creator, &pool_share_b, &Dex::Aquarius, &token_a, &token_b, &200_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
+    client.create_lock(
+        &creator,
+        &pool_share_a,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
+    client.create_lock(
+        &creator,
+        &pool_share_b,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &200_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     let stats = client.get_global_stats();
     assert_eq!(stats.total_lock_count, 2);
     assert_eq!(stats.unique_pool_share_count, 2);
+}
+
+// ── create_lock TVL overflow guard (#490) ────────────────────────────────────
+
+/// The TVL accumulator `current_tvl + amount` overflows i128 when the existing
+/// per-pool-share TVL is already near i128::MAX.  The contract must return
+/// `ContractError::AmountOverflow` instead of trapping.
+#[test]
+fn create_lock_returns_typed_error_on_tvl_overflow() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    // Seed the per-pool-share TVL so that adding any positive amount overflows i128.
+    env.as_contract(&contract_id, || {
+        env.storage().persistent().set(
+            &crate::DataKey::TotalLocked(pool_share_id.clone()),
+            &(i128::MAX - 1),
+        );
+    });
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    let result = client.try_create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
+
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::AmountOverflow)),
+        "expected AmountOverflow typed error, not a panic"
+    );
+}
+
+/// Complement: a TVL addition that lands exactly on i128::MAX must succeed and
+/// persist the new TVL.
+#[test]
+fn create_lock_near_overflow_boundary_succeeds() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    env.as_contract(&contract_id, || {
+        env.storage().persistent().set(
+            &crate::DataKey::TotalLocked(pool_share_id.clone()),
+            &(i128::MAX - 100),
+        );
+    });
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
+
+    assert_eq!(client.get_total_locked(&pool_share_id), i128::MAX);
 }
 
 // ── Cross-account query isolation ─────────────────────────────────────────────
@@ -404,8 +735,17 @@ fn three_accounts_full_lp_flow() {
     mint(&env, &pool_share_id, &creator, 5_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let lock_id = client
-        .create_lock(&creator, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &1_000_i128, &beneficiary, &unlock_at, &empty_metadata(&env)).unwrap();
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     assert_eq!(client.get_lock_count_by_creator(&unauthorized), 0);
     assert_eq!(client.get_lock_count_by_beneficiary(&unauthorized), 0);
@@ -450,13 +790,13 @@ fn propose_and_accept_admin_transfers_ownership() {
     client.init(&admin);
 
     // Step 1: current admin proposes new admin
-    client.propose_admin(&new_admin).unwrap();
+    client.propose_admin(&new_admin);
 
     // Admin has not changed yet
     assert_eq!(client.get_admin(), Some(admin.clone()));
 
     // Step 2: new admin accepts
-    client.accept_admin().unwrap();
+    client.accept_admin();
 
     // Admin is now the new address
     assert_eq!(client.get_admin(), Some(new_admin));
@@ -485,11 +825,11 @@ fn admin_transfer_is_idempotent_on_re_propose() {
     client.init(&admin);
 
     // Propose A, then change mind and propose B before B accepts
-    client.propose_admin(&candidate_a).unwrap();
-    client.propose_admin(&candidate_b).unwrap();
+    client.propose_admin(&candidate_a);
+    client.propose_admin(&candidate_b);
 
     // Accepting should transfer to B, not A
-    client.accept_admin().unwrap();
+    client.accept_admin();
     assert_eq!(client.get_admin(), Some(candidate_b));
 }
 
@@ -509,18 +849,18 @@ fn propose_admin_requires_current_admin_auth() {
         invoke: &soroban_sdk::testutils::MockAuthInvoke {
             contract: &contract_id,
             fn_name: "init",
-            args: soroban_sdk::vec![&env, admin.clone().into()],
+            args: soroban_sdk::vec![&env, admin.into_val(&env)],
             sub_invokes: &[],
         },
     }]);
     client.init(&admin);
 
     // propose_admin without admin's authorisation must panic
-    let result = std::panic::catch_unwind(|| {
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let env2 = env.clone();
         let c2 = LpLockerClient::new(&env2, &contract_id);
         c2.propose_admin(&new_admin)
-    });
+    }));
     assert!(result.is_err(), "propose_admin without auth must panic");
 }
 
@@ -542,9 +882,17 @@ fn create_lock_stores_metadata() {
     };
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let lock_id = client
-        .create_lock(&creator, &pool_share_id, &Dex::Aquarius, &token_a, &token_b, &500_i128, &beneficiary, &unlock_at, &metadata)
-        .unwrap();
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &500_i128,
+        &beneficiary,
+        &unlock_at,
+        &metadata,
+    );
 
     let lock = client.get_lock(&lock_id).expect("lock exists");
     assert!(!lock.metadata.is_empty());
@@ -563,9 +911,17 @@ fn create_lock_without_metadata_leaves_it_empty() {
     mint(&env, &pool_share_id, &creator, 1_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let lock_id = client
-        .create_lock(&creator, &pool_share_id, &Dex::Aquarius, &token_a, &token_b, &500_i128, &beneficiary, &unlock_at, &empty_metadata(&env))
-        .unwrap();
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &500_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     let lock = client.get_lock(&lock_id).expect("lock exists");
     assert!(lock.metadata.is_empty());
@@ -591,9 +947,17 @@ fn unauthorized_address_cannot_withdraw() {
     mint(&env, &pool_share_id, &creator, 1_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let lock_id = client
-        .create_lock(&creator, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &500_i128, &beneficiary, &unlock_at, &empty_metadata(&env))
-        .unwrap();
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &500_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     advance_time(&env, 200);
 
@@ -601,10 +965,12 @@ fn unauthorized_address_cannot_withdraw() {
     env.mock_auths(&[]);
     let _ = &unauthorized;
 
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        client.withdraw(&lock_id)
-    }));
-    assert!(result.is_err(), "withdraw by an unauthorized address must be rejected");
+    let result =
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| client.withdraw(&lock_id)));
+    assert!(
+        result.is_err(),
+        "withdraw by an unauthorized address must be rejected"
+    );
 }
 
 #[test]
@@ -618,9 +984,17 @@ fn unauthorized_address_cannot_extend() {
     mint(&env, &pool_share_id, &creator, 1_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let lock_id = client
-        .create_lock(&creator, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &500_i128, &beneficiary, &unlock_at, &empty_metadata(&env))
-        .unwrap();
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &500_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     env.mock_auths(&[]);
     let _ = &unauthorized;
@@ -628,7 +1002,10 @@ fn unauthorized_address_cannot_extend() {
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         client.extend(&lock_id, &(unlock_at + 1000))
     }));
-    assert!(result.is_err(), "extend by an unauthorized address must be rejected");
+    assert!(
+        result.is_err(),
+        "extend by an unauthorized address must be rejected"
+    );
 }
 
 #[test]
@@ -642,14 +1019,25 @@ fn unauthorized_address_cannot_transfer_beneficiary() {
     mint(&env, &pool_share_id, &creator, 1_000);
 
     let unlock_at = env.ledger().timestamp() + 100;
-    let lock_id = client
-        .create_lock(&creator, &pool_share_id, &Dex::Soroswap, &token_a, &token_b, &500_i128, &beneficiary, &unlock_at, &empty_metadata(&env))
-        .unwrap();
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &500_i128,
+        &beneficiary,
+        &unlock_at,
+        &empty_metadata(&env),
+    );
 
     env.mock_auths(&[]);
 
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         client.transfer_beneficiary(&lock_id, &unauthorized)
     }));
-    assert!(result.is_err(), "transfer_beneficiary by an unauthorized address must be rejected");
+    assert!(
+        result.is_err(),
+        "transfer_beneficiary by an unauthorized address must be rejected"
+    );
 }
