@@ -82,6 +82,10 @@ export function CreateLpLockForm() {
   const trimmedPoolShareAddress = poolShareAddress.trim()
   const trimmedTokenA = tokenA.trim()
   const trimmedTokenB = tokenB.trim()
+  // What will actually become the on-chain beneficiary: the typed override if
+  // present, otherwise the connected wallet. Threaded through to the contract
+  // call, the confirmation preview, and validation so all three agree.
+  const effectiveBeneficiary = beneficiaryOverride.trim() || address || ""
 
   // Single source of truth for this form's validity — the same module backs
   // CreateTokenLockForm, so the two forms can't drift apart. Memoized because
@@ -97,9 +101,9 @@ export function CreateLpLockForm() {
         tokenB,
         amount,
         unlockDate,
-        walletAddress: address ?? null,
+        walletAddress: effectiveBeneficiary || null,
       }),
-    [poolShareAddress, tokenA, tokenB, amount, unlockDate, address],
+    [poolShareAddress, tokenA, tokenB, amount, unlockDate, effectiveBeneficiary],
   )
   const valid = validation.isValid
   const hasIssue = (field: FieldKey) => validation.issues.some((it) => it.field === field)
@@ -146,13 +150,13 @@ export function CreateLpLockForm() {
         new Address(tokenA.trim()).toScVal(),
         new Address(tokenB.trim()).toScVal(),
         nativeToScVal(amountStroops, { type: "i128" }),
-        new Address(address).toScVal(),
+        new Address(effectiveBeneficiary).toScVal(),
         nativeToScVal(BigInt(Math.floor(unlockTs / 1000)), { type: "u64" }),
       ]
     } catch {
       return null
     }
-  }, [address, dex, poolShareAddress, tokenA, tokenB, amount, unlockTs])
+  }, [address, dex, poolShareAddress, tokenA, tokenB, amount, unlockTs, effectiveBeneficiary])
 
   function applyPreset(days: number) {
     setUnlockDate(new Date(Date.now() + days * DAY).toISOString().slice(0, 10))
@@ -184,7 +188,7 @@ export function CreateLpLockForm() {
           tokenA: tokenA.trim(),
           tokenB: tokenB.trim(),
           amount: Number(amount),
-          beneficiary: address!,
+          beneficiary: effectiveBeneficiary,
           unlockAt: Math.floor(unlockTs / 1000),
           metadata: {
             description: description.trim(),
@@ -493,7 +497,7 @@ export function CreateLpLockForm() {
             data={{
               tokenAddress: poolShareAddress.trim(),
               amount: amount,
-              beneficiary: address!,
+              beneficiary: effectiveBeneficiary,
               unlockDate: unlockDate,
               isLp: true,
               dex: dex,

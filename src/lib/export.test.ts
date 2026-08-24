@@ -66,7 +66,6 @@ describe("export utilities", () => {
         })
         // Swallow the assignment so jsdom never tries to resolve the blob URL.
         Object.defineProperty(link, "href", {
-          set: () => undefined,
           set: () => {},
           get: () => "blob:mock-url",
         })
