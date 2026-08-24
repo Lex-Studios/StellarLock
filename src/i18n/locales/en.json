@@ -360,6 +360,21 @@
       "message": "You've exceeded the rate limit for creating locks. Please wait before creating another lock.",
       "recovery": "Wait a moment and try again."
     },
+    "unlockTooSoon": {
+      "title": "Extension Too Short",
+      "message": "The new unlock date must be far enough past the current one to count as an extension.",
+      "recovery": "Choose a date further in the future."
+    },
+    "extensionLimitReached": {
+      "title": "Extension Limit Reached",
+      "message": "This lock has already been extended the maximum number of times allowed.",
+      "recovery": "No further extensions are possible for this lock."
+    },
+    "unlockExceedsMax": {
+      "title": "Extension Too Long",
+      "message": "The new unlock date is further in the future than the contract allows.",
+      "recovery": "Choose an earlier date within the allowed range."
+    },
     "insufficientBalance": {
       "title": "Insufficient Balance",
       "message": "You don't have enough tokens to lock this amount.",
