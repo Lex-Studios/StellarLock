@@ -465,9 +465,9 @@ impl LpLocker {
 
             save_lock(&env, &lock);
             env.events().publish(
-                (Symbol::new(&env, "lp_lock_withdrawn"),),
+                (Symbol::new(&env, "lp_lock_withdrawn"), id),
+                (lock.beneficiary.clone(), lock.pool_share.clone(), lock.amount),
                 (
-                    id,
                     lock.beneficiary.clone(),
                     lock.pool_share.clone(),
                     releasable,

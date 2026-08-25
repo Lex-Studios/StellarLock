@@ -22,7 +22,7 @@ const _caches = new Map<string, Set<string>>()
  * Anything else (including the testnet dev default) maps to "testnet".
  */
 function resolveNetworkKey(): "testnet" | "mainnet" {
-  const network = (import.meta.env.VITE_NETWORK as string | undefined)?.toLowerCase() ?? "testnet"
+  const network = import.meta.env.VITE_NETWORK?.toLowerCase() ?? "testnet"
   return network === "mainnet" || network === "staging" ? "mainnet" : "testnet"
 }
 

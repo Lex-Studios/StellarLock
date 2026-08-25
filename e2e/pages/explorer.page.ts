@@ -5,9 +5,9 @@ export class ExplorerPage {
 
   async goto(tokenAddress?: string) {
     if (tokenAddress) {
-      await this.page.goto(`/app/explorer/${tokenAddress}`)
+      await this.page.goto(`/explore/${tokenAddress}`)
     } else {
-      await this.page.goto('/app/explorer')
+      await this.page.goto('/explore')
     }
   }
 

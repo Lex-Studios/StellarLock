@@ -10,7 +10,7 @@
  *  - Tolerates a null lock
  */
 import { renderHook, act } from "@testing-library/react"
-import { describe, expect,it } from "vitest"
+import { describe, expect, it } from "vitest"
 
 import { useOptimisticLock } from "@/hooks/useOptimisticLock"
 import type { Lock } from "@/types/lock"
@@ -36,7 +36,7 @@ function makeLock(overrides: Partial<Lock> = {}): Lock {
     unlockAt: UNLOCK_AT,
     extendedCount: 0,
     ...overrides,
-  } as Lock
+  }
 }
 
 describe("useOptimisticLock", () => {
@@ -54,7 +54,9 @@ describe("useOptimisticLock", () => {
     expect(result.current.lock).toBeNull()
     expect(result.current.isPending).toBe(false)
 
-    act(() => { result.current.applyOptimistic({ status: "withdrawn" }) })
+    act(() => {
+      result.current.applyOptimistic({ status: "withdrawn" })
+    })
 
     expect(result.current.lock).toBeNull()
   })
@@ -63,21 +65,25 @@ describe("useOptimisticLock", () => {
     it("shows the lock as withdrawn before the transaction confirms", () => {
       const { result } = renderHook(() => useOptimisticLock(makeLock()))
 
-      act(() => { result.current.applyOptimistic({ status: "withdrawn" }) })
+      act(() => {
+        result.current.applyOptimistic({ status: "withdrawn" })
+      })
 
       expect(result.current.lock?.status).toBe("withdrawn")
       expect(result.current.isPending).toBe(true)
     })
 
     it("rolls back to the previous status when the transaction fails", () => {
-      const { result } = renderHook(() =>
-        useOptimisticLock(makeLock({ status: "unlockable" })),
-      )
+      const { result } = renderHook(() => useOptimisticLock(makeLock({ status: "unlockable" })))
 
-      act(() => { result.current.applyOptimistic({ status: "withdrawn" }) })
+      act(() => {
+        result.current.applyOptimistic({ status: "withdrawn" })
+      })
       expect(result.current.lock?.status).toBe("withdrawn")
 
-      act(() => { result.current.revertOptimistic() })
+      act(() => {
+        result.current.revertOptimistic()
+      })
 
       expect(result.current.lock?.status).toBe("unlockable")
       expect(result.current.isPending).toBe(false)
@@ -86,8 +92,12 @@ describe("useOptimisticLock", () => {
     it("keeps the withdrawn state on confirm, deferring to chain data", () => {
       const { result } = renderHook(() => useOptimisticLock(makeLock()))
 
-      act(() => { result.current.applyOptimistic({ status: "withdrawn" }) })
-      act(() => { result.current.confirmOptimistic() })
+      act(() => {
+        result.current.applyOptimistic({ status: "withdrawn" })
+      })
+      act(() => {
+        result.current.confirmOptimistic()
+      })
 
       // The overlay is dropped; the source lock is authoritative again and a
       // refetch is what supplies the real post-withdraw status.
@@ -122,7 +132,9 @@ describe("useOptimisticLock", () => {
           extendedCount: 1,
         })
       })
-      act(() => { result.current.revertOptimistic() })
+      act(() => {
+        result.current.revertOptimistic()
+      })
 
       expect(result.current.lock?.unlockAt).toBe(UNLOCK_AT)
       expect(result.current.lock?.extendedCount).toBe(0)
@@ -132,7 +144,9 @@ describe("useOptimisticLock", () => {
       const lock = makeLock()
       const { result } = renderHook(() => useOptimisticLock(lock))
 
-      act(() => { result.current.applyOptimistic({ unlockAt: NEW_UNLOCK_AT }) })
+      act(() => {
+        result.current.applyOptimistic({ unlockAt: NEW_UNLOCK_AT })
+      })
 
       expect(result.current.lock?.amount).toBe(lock.amount)
       expect(result.current.lock?.beneficiary).toBe(lock.beneficiary)
@@ -142,12 +156,11 @@ describe("useOptimisticLock", () => {
 
   it("does not clobber a refetch that lands while a patch is in flight", () => {
     const initial = makeLock({ amount: 1000 })
-    const { result, rerender } = renderHook(
-      ({ lock }) => useOptimisticLock(lock),
-      { initialProps: { lock: initial } },
-    )
+    const { result, rerender } = renderHook(({ lock }) => useOptimisticLock(lock), { initialProps: { lock: initial } })
 
-    act(() => { result.current.applyOptimistic({ status: "withdrawn" }) })
+    act(() => {
+      result.current.applyOptimistic({ status: "withdrawn" })
+    })
 
     // Fresh chain data arrives mid-flight with a different amount.
     const refetched = makeLock({ amount: 2500 })

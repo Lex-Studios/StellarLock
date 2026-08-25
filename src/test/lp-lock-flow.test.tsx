@@ -6,6 +6,13 @@ import { render } from "./utils"
 import { CreateLpLockForm } from "@/components/locks/CreateLpLockForm"
 import { mockWallet, VALID_CONTRACT_ADDRESS } from "./mocks"
 
+const mockNavigate = vi.fn()
+
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-router-dom")>()
+  return { ...actual, useNavigate: () => mockNavigate }
+})
+
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: () => mockWallet,
   WalletProvider: ({ children }: { children: ReactNode }) => children,
@@ -177,6 +184,66 @@ describe("LP Lock Creation Flow", () => {
         mockWallet.signTransaction,
         expect.any(Function),
       )
+    })
+  })
+
+  it("locks for the typed beneficiary override instead of the connected wallet", async () => {
+    const OVERRIDE_BENEFICIARY = "GA5DTCACZO4727N6LG5L3A54WQENY73CFESY2GLSKM5X6XEMY6IOJGUI"
+    const { createLpLock } = await import("@/lib/lp-locker")
+    const user = userEvent.setup()
+    render(<CreateLpLockForm />)
+
+    await user.type(screen.getByLabelText(/pool share token address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/token a address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/lp amount/i), "100")
+    await user.type(screen.getByLabelText(/beneficiary/i), OVERRIDE_BENEFICIARY)
+
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 30)
+    await user.type(screen.getByLabelText(/unlock date/i), futureDate.toISOString().split("T")[0])
+
+    await user.click(screen.getByRole("button", { name: /lock liquidity/i }))
+
+    // The confirmation preview shows the typed override (rendered shortened,
+    // e.g. "GA5DTCAC…MY6IOJGUI"), not the wallet address.
+    expect(
+      await screen.findByText(`${OVERRIDE_BENEFICIARY.slice(0, 8)}…${OVERRIDE_BENEFICIARY.slice(-8)}`),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(`${mockWallet.address.slice(0, 8)}…${mockWallet.address.slice(-8)}`),
+    ).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: /confirm & lock/i }))
+
+    await waitFor(() => {
+      expect(createLpLock).toHaveBeenCalledWith(
+        expect.objectContaining({ beneficiary: OVERRIDE_BENEFICIARY }),
+        mockWallet.address,
+        mockWallet.signTransaction,
+        expect.any(Function),
+      )
+    })
+  })
+
+  it("navigates to the LP detail route after creating a lock", async () => {
+    const user = userEvent.setup()
+    render(<CreateLpLockForm />)
+
+    await user.type(screen.getByLabelText(/pool share token address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/token a address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/token b address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/lp amount/i), "100")
+
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 30)
+    await user.type(screen.getByLabelText(/unlock date/i), futureDate.toISOString().split("T")[0])
+
+    await user.click(screen.getByRole("button", { name: /lock liquidity/i }))
+    await user.click(await screen.findByRole("button", { name: /confirm & lock/i }))
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/app/lock/lp/2")
     })
   })
 

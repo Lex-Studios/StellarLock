@@ -118,9 +118,7 @@ describe("ConfirmLockModal", () => {
   // -------------------------------------------------------------------------
 
   it("shows balance row when balance is provided", () => {
-    render(
-      <ConfirmLockModal data={{ ...baseData, balance: 2000 }} onConfirm={onConfirm} onCancel={onCancel} />,
-    )
+    render(<ConfirmLockModal data={{ ...baseData, balance: 2000 }} onConfirm={onConfirm} onCancel={onCancel} />)
     expect(screen.getByText(/your balance/i)).toBeInTheDocument()
     expect(screen.getByText(/2[,.]?000/)).toBeInTheDocument()
   })
@@ -141,26 +139,20 @@ describe("ConfirmLockModal", () => {
   // -------------------------------------------------------------------------
 
   it("shows insufficient balance warning when balance < amount", () => {
-    render(
-      <ConfirmLockModal data={{ ...baseData, balance: 500 }} onConfirm={onConfirm} onCancel={onCancel} />,
-    )
+    render(<ConfirmLockModal data={{ ...baseData, balance: 500 }} onConfirm={onConfirm} onCancel={onCancel} />)
     expect(screen.getByText(/insufficient balance/i)).toBeInTheDocument()
   })
 
   it("renders a disabled 'Insufficient Balance' button when balance is too low", () => {
-    render(
-      <ConfirmLockModal data={{ ...baseData, balance: 500 }} onConfirm={onConfirm} onCancel={onCancel} />,
-    )
+    render(<ConfirmLockModal data={{ ...baseData, balance: 500 }} onConfirm={onConfirm} onCancel={onCancel} />)
     const btn = screen.getByRole("button", { name: /insufficient balance/i })
     expect(btn).toBeDisabled()
   })
 
-  it("does not call onConfirm when balance is insufficient and confirm is clicked", async () => {
+  it("does not call onConfirm when balance is insufficient and confirm is clicked", () => {
     // The button is disabled so user interaction won't fire it, but confirm
     // should never be invoked.
-    render(
-      <ConfirmLockModal data={{ ...baseData, balance: 500 }} onConfirm={onConfirm} onCancel={onCancel} />,
-    )
+    render(<ConfirmLockModal data={{ ...baseData, balance: 500 }} onConfirm={onConfirm} onCancel={onCancel} />)
     // Only the "Insufficient Balance" (disabled) and "Cancel" buttons are shown
     expect(screen.queryByRole("button", { name: /confirm & lock/i })).not.toBeInTheDocument()
     expect(onConfirm).not.toHaveBeenCalled()

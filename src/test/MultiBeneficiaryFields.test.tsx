@@ -21,9 +21,7 @@ const invalidTwo: SplitBeneficiary[] = [
 ]
 
 /** Single beneficiary (below minimum count of 2). */
-const singleOne: SplitBeneficiary[] = [
-  { address: VALID_ADDR_A, shareBps: 10000 },
-]
+const singleOne: SplitBeneficiary[] = [{ address: VALID_ADDR_A, shareBps: 10000 }]
 
 describe("MultiBeneficiaryFields component", () => {
   it("renders one row per beneficiary", () => {
@@ -57,14 +55,12 @@ describe("MultiBeneficiaryFields component", () => {
 
   it("shows the minimum-beneficiaries hint when there is only one entry", () => {
     render(<MultiBeneficiaryFields beneficiaries={singleOne} onChange={vi.fn()} />)
-    expect(
-      screen.getByText(/add at least 2 beneficiaries/i),
-    ).toBeInTheDocument()
+    expect(screen.getByText(/add at least 2 beneficiaries/i)).toBeInTheDocument()
   })
 
   it("calls onChange with a new empty entry when Add beneficiary is clicked", async () => {
     const user = userEvent.setup()
-    const handleChange = vi.fn()
+    const handleChange = vi.fn<(next: SplitBeneficiary[]) => void>()
 
     render(<MultiBeneficiaryFields beneficiaries={validTwo} onChange={handleChange} />)
 
@@ -79,7 +75,7 @@ describe("MultiBeneficiaryFields component", () => {
 
   it("calls onChange with the entry removed when Remove is clicked", async () => {
     const user = userEvent.setup()
-    const handleChange = vi.fn()
+    const handleChange = vi.fn<(next: SplitBeneficiary[]) => void>()
 
     // Need ≥3 entries so the remove button is enabled (disabled when length <= 2)
     const threeEntries: SplitBeneficiary[] = [
@@ -109,7 +105,7 @@ describe("MultiBeneficiaryFields component", () => {
   })
 
   it("calls onChange with updated address when address input changes", () => {
-    const handleChange = vi.fn()
+    const handleChange = vi.fn<(next: SplitBeneficiary[]) => void>()
     render(<MultiBeneficiaryFields beneficiaries={validTwo} onChange={handleChange} />)
 
     const firstInput = screen.getAllByPlaceholderText("G…")[0]

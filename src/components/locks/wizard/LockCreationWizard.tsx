@@ -4,7 +4,7 @@ import { Coins, Droplets, ArrowLeft, ArrowRight, Check } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
-import { cn } from "@/lib/utils"
+import { cn, formatDate } from "@/lib/utils"
 import { Input, Label } from "@/components/ui/Input"
 import { useWallet } from "@/hooks/useWallet"
 import { useTokenBalanceSWR } from "@/hooks/useTokenBalanceSWR"
@@ -17,6 +17,7 @@ import type { Dex } from "@/types/lock"
 import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
 import type { TxPhase } from "@/lib/stellar"
+import { addNotification } from "@/hooks/useNotifications"
 
 type LockType = "token" | "lp"
 
@@ -112,8 +113,10 @@ export function LockCreationWizard() {
     setTxPhase("simulating")
     setError(null)
     try {
+      const unlockAt = new Date(state.unlockDate).getTime()
+      let lockId: string
       if (state.lockType === "token") {
-        await createTokenLock(
+        const created = await createTokenLock(
           {
             tokenAddress: state.tokenAddress.trim(),
             amount: Number(state.amount),
@@ -128,8 +131,9 @@ export function LockCreationWizard() {
           signTransaction,
           setTxPhase,
         )
+        lockId = created.id
       } else {
-        await createLpLock(
+        const created = await createLpLock(
           {
             poolShareAddress: state.poolShareAddress.trim(),
             dex: state.dex,
@@ -144,7 +148,15 @@ export function LockCreationWizard() {
           signTransaction,
           setTxPhase,
         )
+        lockId = created.id
       }
+      addNotification({
+        type: "lock_created",
+        lockId,
+        lockKind: state.lockType,
+        title: t("notifications.center.lockCreatedTitle"),
+        message: t("notifications.center.lockCreatedMessage", { id: lockId, date: formatDate(unlockAt) }),
+      })
       clearState()
       void navigate("/app/locks")
     } catch (err) {

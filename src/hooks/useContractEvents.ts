@@ -5,7 +5,15 @@ import { createLogger } from "@/lib/logger"
 const log = createLogger("useContractEvents")
 
 export interface ContractEvent {
-  type: "lock_created" | "lock_withdrawn" | "lock_extended" | "beneficiary_transferred" | "lp_lock_created" | "lp_lock_withdrawn" | "lp_lock_extended" | "lp_beneficiary_transferred"
+  type:
+    | "lock_created"
+    | "lock_withdrawn"
+    | "lock_extended"
+    | "beneficiary_transferred"
+    | "lp_lock_created"
+    | "lp_lock_withdrawn"
+    | "lp_lock_extended"
+    | "lp_beneficiary_transferred"
   lockId: string
   timestamp: number
   data: Record<string, unknown>
@@ -36,10 +44,11 @@ export function useContractEvents(options: EventPollingOptions = {}) {
   const [events, setEvents] = useState<ContractEvent[]>([])
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const lastSequenceRef = useRef<number>(0)
+  const emittedEventIdsRef = useRef<Set<string>>(new Set())
 
   const fetchEvents = useCallback(async () => {
     try {
-      const rpc = (import.meta.env.VITE_RPC_URL as string | undefined) || NETWORK.rpcUrl
+      const rpc = import.meta.env.VITE_RPC_URL || NETWORK.rpcUrl
 
       const response = await fetch(rpc, {
         method: "POST",
@@ -56,8 +65,8 @@ export function useContractEvents(options: EventPollingOptions = {}) {
                 contractIds: (() => {
                   const addr =
                     contractAddress ??
-                    (import.meta.env.VITE_TOKEN_LOCKER_CONTRACT as string | undefined) ??
-                    (import.meta.env.VITE_LP_LOCKER_CONTRACT as string | undefined)
+                    import.meta.env.VITE_TOKEN_LOCKER_CONTRACT ??
+                    import.meta.env.VITE_LP_LOCKER_CONTRACT
                   return addr ? [addr] : []
                 })(),
               },
@@ -90,6 +99,10 @@ export function useContractEvents(options: EventPollingOptions = {}) {
         ) {
           continue
         }
+
+        const eventId = event.id ?? `${event.ledger ?? 0}:${eventType}:${event.topic[1] ?? ""}`
+        if (emittedEventIdsRef.current.has(eventId)) continue
+        emittedEventIdsRef.current.add(eventId)
 
         const contractEvent: ContractEvent = {
           type: eventType as ContractEvent["type"],
