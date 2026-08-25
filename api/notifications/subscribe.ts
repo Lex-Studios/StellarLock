@@ -33,14 +33,42 @@ interface Res {
 
 const STELLAR_ADDRESS_RE = /^G[A-Z2-7]{55}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-// Simple SSRF guard: reject private/loopback ranges
-const PRIVATE_URL_RE = /^https?:\/\/(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i
+// Simple SSRF guard: reject private/loopback/metadata ranges
+function isPrivateOrReservedHostname(hostname: string): boolean {
+  // IPv6 loopback
+  if (hostname === '::1' || hostname === '[::1]') return true
+
+  // Plain IPv4 or IPv4-mapped IPv6 (strip brackets if present)
+  const addr = hostname.startsWith('[') && hostname.endsWith(']')
+    ? hostname.slice(1, -1)
+    : hostname
+
+  // localhost
+  if (addr === 'localhost') return true
+
+  // 127.0.0.0/8
+  if (/^127\./.test(addr)) return true
+
+  // 10.0.0.0/8
+  if (/^10\./.test(addr)) return true
+
+  // 172.16.0.0/12
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(addr)) return true
+
+  // 192.168.0.0/16
+  if (/^192\.168\./.test(addr)) return true
+
+  // Cloud instance metadata endpoint
+  if (addr === '169.254.169.254') return true
+
+  return false
+}
 
 function validateWebhookUrl(url: string): string | null {
   try {
     const parsed = new URL(url)
     if (!['http:', 'https:'].includes(parsed.protocol)) return 'webhookUrl must use http or https'
-    if (PRIVATE_URL_RE.test(url)) return 'webhookUrl must not point to a private network address'
+    if (isPrivateOrReservedHostname(parsed.hostname)) return 'webhookUrl must not point to a private network address'
     return null
   } catch {
     return 'webhookUrl is not a valid URL'
@@ -58,8 +86,8 @@ export default function handler(req: Req, res: Res) {
 
   const rawLockId = body?.lockId
   const address = body?.address
-  const email = body?.email ?? null
-  const webhookUrl = body?.webhookUrl ?? null
+  const email = body?.email as string | null | undefined
+  const webhookUrl = body?.webhookUrl as string | null | undefined
 
   // --- Validation ---
   if (typeof rawLockId !== 'string' || !rawLockId.trim()) {
@@ -68,17 +96,17 @@ export default function handler(req: Req, res: Res) {
   if (typeof address !== 'string' || !STELLAR_ADDRESS_RE.test(address)) {
     return res.status(400).json({ error: 'address must be a valid Stellar address' })
   }
-  if (email !== null && (typeof email !== 'string' || !EMAIL_RE.test(email))) {
+  if (email !== undefined && email !== null && (typeof email !== 'string' || !EMAIL_RE.test(email))) {
     return res.status(400).json({ error: 'email is not a valid email address' })
   }
-  if (webhookUrl !== null) {
+  if (webhookUrl !== undefined && webhookUrl !== null) {
     if (typeof webhookUrl !== 'string') {
       return res.status(400).json({ error: 'webhookUrl must be a string' })
     }
     const urlErr = validateWebhookUrl(webhookUrl)
     if (urlErr) return res.status(400).json({ error: urlErr })
   }
-  if (!email && !webhookUrl) {
+  if (email === undefined && webhookUrl === undefined) {
     return res.status(400).json({ error: 'at least one of email or webhookUrl is required' })
   }
 
@@ -93,15 +121,18 @@ export default function handler(req: Req, res: Res) {
     .get(address, lockId) as { id: string; email: string | null; webhook_url: string | null } | undefined
 
   if (existing) {
+    // Preserve existing values for omitted fields (undefined means not provided)
+    const newEmail = email !== undefined ? email : existing.email
+    const newWebhookUrl = webhookUrl !== undefined ? webhookUrl : existing.webhook_url
     const channelsChanged =
-      (email ?? null) !== (existing.email ?? null) ||
-      (webhookUrl ?? null) !== (existing.webhook_url ?? null)
+      (newEmail ?? null) !== (existing.email ?? null) ||
+      (newWebhookUrl ?? null) !== (existing.webhook_url ?? null)
 
     db.prepare(
       `UPDATE notification_subscriptions
        SET email = ?, webhook_url = ?${channelsChanged ? ', reminded_7d = 0, reminded_1d = 0, reminded_0d = 0' : ''}
        WHERE id = ?`,
-    ).run(email ?? null, webhookUrl ?? null, existing.id)
+    ).run(newEmail ?? null, newWebhookUrl ?? null, existing.id)
 
     return res.status(201).json({ id: existing.id })
   }
