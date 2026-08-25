@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, within } from "@testing-library/react"
+import { act, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { I18nextProvider } from "react-i18next"
 import { MemoryRouter } from "react-router-dom"
 import i18n from "@/i18n"
 import { Navbar } from "@/components/layout/Navbar"
 import { mockWallet } from "./mocks"
+import { addNotification, resetNotificationStore } from "@/hooks/useNotifications"
 
 vi.mock("@/hooks/useWallet", () => ({
   useWallet: vi.fn(),
@@ -53,6 +54,18 @@ function renderNavbar(path = "/") {
 describe("Navbar Component", () => {
   const toggleTheme = vi.fn()
 
+  // The notification bell only renders for a connected wallet.
+  function connectWallet() {
+    mockUseWallet.mockReturnValue({
+      ...mockWallet,
+      isConnected: true,
+      connecting: false,
+      connectState: "idle",
+      connectError: null,
+      connectHelp: null,
+    })
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
     mockUseWallet.mockReturnValue({
@@ -64,6 +77,8 @@ describe("Navbar Component", () => {
       connectHelp: null,
     })
     mockUseTheme.mockReturnValue({ theme: "light", toggleTheme })
+    localStorage.clear()
+    resetNotificationStore()
   })
 
   it("renders the brand link and primary nav links", () => {
@@ -212,5 +227,40 @@ describe("Navbar Component", () => {
     renderNavbar()
 
     expect(screen.getByRole("button", { name: /switch to light theme/i })).toBeInTheDocument()
+  })
+
+  it("shows an empty notification center until activity is recorded", async () => {
+    const user = userEvent.setup()
+    connectWallet()
+    renderNavbar()
+
+    const bell = screen.getByRole("button", { name: /notifications/i })
+    expect(within(bell).queryByText("1")).not.toBeInTheDocument()
+
+    await user.click(bell)
+    expect(screen.getByText(/no notifications yet/i)).toBeInTheDocument()
+  })
+
+  it("shows an unread badge and the entry once a lock action is recorded", async () => {
+    const user = userEvent.setup()
+    connectWallet()
+    renderNavbar()
+
+    act(() => {
+      addNotification({
+        type: "lock_created",
+        lockId: "7",
+        lockKind: "token",
+        title: "Lock created",
+        message: "Lock #7 is active.",
+      })
+    })
+
+    const bell = screen.getByRole("button", { name: /notifications/i })
+    expect(within(bell).getByText("1")).toBeInTheDocument()
+
+    await user.click(bell)
+    expect(screen.getByText("Lock created")).toBeInTheDocument()
+    expect(screen.getByText("Lock #7 is active.")).toBeInTheDocument()
   })
 })

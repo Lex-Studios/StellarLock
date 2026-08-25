@@ -7,7 +7,10 @@ import type { Dex } from "@/types/lock"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
-import { cn, formatDate, isValidStellarAddress, notify } from "@/lib/utils"
+import { cn, formatDate, notify } from "@/lib/utils"
+import { isValidStellarAddress } from "@/lib/stellar-address"
+import { validateLpLockForm, type FieldKey } from "@/lib/validation/lockFormValidation"
+import { FormValidationErrors } from "@/components/locks/FormValidationErrors"
 import { sanitizeError } from "@/lib/error-sanitizer"
 import type { StructuredError } from "@/lib/errors"
 import { TxErrorAlert } from "@/components/ui/TxErrorAlert"
@@ -19,12 +22,12 @@ import { CONTRACTS, type TxPhase } from "@/lib/stellar"
 import { trackEvent } from "@/lib/analytics"
 import { addTransaction } from "@/lib/transaction-history"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
-import { isValidStellarContractAddress, isValidStellarPublicKey } from "@/lib/stellar"
 import { CostEstimate } from "@/components/locks/CostEstimate"
 import { AddressBookModal } from "@/components/ui/AddressBookModal"
 import { BookUser } from "lucide-react"
 import { createLogger } from "@/lib/logger"
 import { useDraftAutoSave } from "@/hooks/useDraftStorage"
+import { addNotification } from "@/hooks/useNotifications"
 
 const log = createLogger("CreateLpLockForm")
 
@@ -79,25 +82,46 @@ export function CreateLpLockForm() {
   const trimmedPoolShareAddress = poolShareAddress.trim()
   const trimmedTokenA = tokenA.trim()
   const trimmedTokenB = tokenB.trim()
-  const poolAddressValid = isValidStellarContractAddress(trimmedPoolShareAddress)
-  const tokenAValid = isValidStellarContractAddress(trimmedTokenA)
-  const tokenBValid = isValidStellarContractAddress(trimmedTokenB)
-  const beneficiaryValid = isValidStellarPublicKey(address || "")
-  const valid =
-    poolAddressValid &&
-    tokenAValid &&
-    tokenBValid &&
-    beneficiaryValid &&
-    isValidStellarAddress(poolShareAddress.trim()) &&
-    isValidStellarAddress(tokenA.trim()) &&
-    isValidStellarAddress(tokenB.trim()) &&
-    Number(amount) > 0 &&
-    unlockTs > Date.now()
+  // What will actually become the on-chain beneficiary: the typed override if
+  // present, otherwise the connected wallet. Threaded through to the contract
+  // call, the confirmation preview, and validation so all three agree.
+  const effectiveBeneficiary = beneficiaryOverride.trim() || address || ""
 
-  const validPoolShareAddress =
-    poolShareAddress.trim().length === 56 && poolShareAddress.trim().startsWith("C")
-      ? poolShareAddress.trim()
-      : undefined
+  // Single source of truth for this form's validity — the same module backs
+  // CreateTokenLockForm, so the two forms can't drift apart. Memoized because
+  // FormValidationErrors keys its screen-reader announcement off the result.
+  //
+  // `allowance` is deliberately not passed: a low allowance is recoverable from
+  // the confirm modal's Approve button, so it must not block reaching it.
+  const validation = useMemo(
+    () =>
+      validateLpLockForm({
+        poolShareAddress,
+        tokenA,
+        tokenB,
+        amount,
+        unlockDate,
+        walletAddress: effectiveBeneficiary || null,
+      }),
+    [poolShareAddress, tokenA, tokenB, amount, unlockDate, effectiveBeneficiary],
+  )
+  const valid = validation.isValid
+  const hasIssue = (field: FieldKey) => validation.issues.some((it) => it.field === field)
+
+  // Surface an issue only once the user has entered something for that field,
+  // so a pristine form doesn't greet them with a wall of red. The beneficiary
+  // issue is wallet-derived rather than typed, so it always shows.
+  const visibleIssues = useMemo(() => {
+    const touched = new Set<FieldKey>(["beneficiary"])
+    if (poolShareAddress.trim()) touched.add("poolShareAddress")
+    if (tokenA.trim()) touched.add("tokenA")
+    if (tokenB.trim()) touched.add("tokenB")
+    if (amount.trim()) touched.add("amount")
+    if (unlockDate) touched.add("unlockDate")
+    return validation.issues.filter((it) => touched.has(it.field))
+  }, [validation, poolShareAddress, tokenA, tokenB, amount, unlockDate])
+
+  const validPoolShareAddress = hasIssue("poolShareAddress") ? undefined : trimmedPoolShareAddress
   const { data: balance, loading: balanceLoading } = useTokenBalance(validPoolShareAddress, address ?? null)
   const { data: allowance, loading: allowanceLoading } = useTokenAllowance(
     validPoolShareAddress,
@@ -126,13 +150,13 @@ export function CreateLpLockForm() {
         new Address(tokenA.trim()).toScVal(),
         new Address(tokenB.trim()).toScVal(),
         nativeToScVal(amountStroops, { type: "i128" }),
-        new Address(address).toScVal(),
+        new Address(effectiveBeneficiary).toScVal(),
         nativeToScVal(BigInt(Math.floor(unlockTs / 1000)), { type: "u64" }),
       ]
     } catch {
       return null
     }
-  }, [address, dex, poolShareAddress, tokenA, tokenB, amount, unlockTs])
+  }, [address, dex, poolShareAddress, tokenA, tokenB, amount, unlockTs, effectiveBeneficiary])
 
   function applyPreset(days: number) {
     setUnlockDate(new Date(Date.now() + days * DAY).toISOString().slice(0, 10))
@@ -164,7 +188,7 @@ export function CreateLpLockForm() {
           tokenA: tokenA.trim(),
           tokenB: tokenB.trim(),
           amount: Number(amount),
-          beneficiary: address!,
+          beneficiary: effectiveBeneficiary,
           unlockAt: Math.floor(unlockTs / 1000),
           metadata: {
             description: description.trim(),
@@ -179,7 +203,14 @@ export function CreateLpLockForm() {
       addTransaction(txHash, "create_lock", { lockId: id, amount: String(amount) })
       trackEvent("lock_create_lp", { dex })
       notify.lockCreated()
-      void navigate(`/app/lock/${id}`)
+      addNotification({
+        type: "lock_created",
+        lockId: id,
+        lockKind: "lp",
+        title: t("notifications.center.lockCreatedTitle"),
+        message: t("notifications.center.lockCreatedMessage", { id, date: formatDate(unlockTs) }),
+      })
+      void navigate(`/app/lock/lp/${id}`)
     } catch (err: unknown) {
       log.error("[createLpLock error]", err)
       setShowConfirm(false)
@@ -251,7 +282,7 @@ export function CreateLpLockForm() {
             value={poolShareAddress}
             onChange={(e) => setPoolShareAddress(e.target.value)}
             className="font-mono"
-            aria-invalid={!!trimmedPoolShareAddress && !poolAddressValid}
+            aria-invalid={!!trimmedPoolShareAddress && hasIssue("poolShareAddress")}
           />
           <p className="text-xs text-muted-foreground">
             {t("lpForm.poolHint", { dex: dex === "aquarius" ? t("lpForm.aquarius") : t("lpForm.soroswap") })}
@@ -267,7 +298,7 @@ export function CreateLpLockForm() {
               value={tokenA}
               onChange={(e) => setTokenA(e.target.value)}
               className="font-mono"
-              aria-invalid={!!trimmedTokenA && !tokenAValid}
+              aria-invalid={!!trimmedTokenA && hasIssue("tokenA")}
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -278,7 +309,7 @@ export function CreateLpLockForm() {
               value={tokenB}
               onChange={(e) => setTokenB(e.target.value)}
               className="font-mono"
-              aria-invalid={!!trimmedTokenB && !tokenBValid}
+              aria-invalid={!!trimmedTokenB && hasIssue("tokenB")}
             />
           </div>
         </div>
@@ -452,6 +483,8 @@ export function CreateLpLockForm() {
 
         <CostEstimate contractId={CONTRACTS.lpLocker} method="create_lock" args={costArgs} />
 
+        <FormValidationErrors issues={visibleIssues} />
+
         <Button type="submit" size="lg" loading={submitting} disabled={!valid}>
           <Droplets className="h-4 w-4" />
           {t("lpForm.submit")}
@@ -464,7 +497,7 @@ export function CreateLpLockForm() {
             data={{
               tokenAddress: poolShareAddress.trim(),
               amount: amount,
-              beneficiary: address!,
+              beneficiary: effectiveBeneficiary,
               unlockDate: unlockDate,
               isLp: true,
               dex: dex,

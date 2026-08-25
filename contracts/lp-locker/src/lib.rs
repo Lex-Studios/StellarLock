@@ -380,6 +380,11 @@ impl LpLocker {
             env.events().publish(
                 (Symbol::new(&env, "lp_lock_withdrawn"), id),
                 (lock.beneficiary.clone(), lock.pool_share.clone(), lock.amount),
+                (
+                    lock.beneficiary.clone(),
+                    lock.pool_share.clone(),
+                    lock.amount,
+                ),
             );
             Ok(())
         })();

@@ -20,7 +20,8 @@
     "disconnectWallet": "Cüzdanı ayır",
     "openMenu": "Menüyü aç",
     "closeMenu": "Menüyü kapat",
-    "history": "Geçmiş"
+    "history": "Geçmiş",
+    "analytics": "Analitik"
   },
   "landing": {
     "badge": "Stellar üzerine inşa edildi · Soroban akıllı sözleşmeleri",
@@ -79,6 +80,12 @@
     "days90": "90 gün",
     "months6": "6 ay",
     "year1": "1 yıl",
+    "metadataTitle": "Proje bilgisi (isteğe bağlı)",
+    "metadataDesc": "Topluluğunuzun bu kilidi kimin oluşturduğunu doğrulayabilmesi için kilidin detay ve gezgin sayfalarında gösterilir.",
+    "description": "Açıklama",
+    "descriptionPlaceholder": "Bu kilit ne için?",
+    "projectUrl": "Proje URL'si",
+    "logoUrl": "Logo URL'si",
     "insufficientBalance": "Yetersiz bakiye. {{balance}} var ama {{amount}} gerekli.",
     "needsApproval": "Kilitlemeden önce sözleşmenin tokenlerinizi transfer etmesine izin vermeniz gerekiyor.",
     "approveAndContinue": "Onayla ve Devam Et",
@@ -161,7 +168,10 @@
     "transferHint": "Çekim haklarını yeni bir Stellar adresine devredin. Bu işlem geri alınamaz.",
     "confirmTransfer": "Devri onayla",
     "securityNotice": "Bu tokenler kilit açma tarihine kadar StellarLock sözleşmesi tarafından güvence altındadır. Ne oluşturan ne de StellarLock bunları erken taşıyabilir.",
-    "viewExplorer": "Token gezginini görüntüle"
+    "viewExplorer": "Token gezginini görüntüle",
+    "withdrawSuccess": "Çekim onaylandı.",
+    "extendSuccess": "Kilit uzatıldı.",
+    "transferSuccess": "Yararlanıcı aktarıldı."
   },
   "explorer": {
     "backToSearch": "Aramaya dön",
@@ -212,11 +222,28 @@
     "title": "Kilit Açma Bildirimleri",
     "browser": "Tarayıcı bildirimleri",
     "browserDesc": "Kilit açılmadan 7 gün, 1 gün önce ve açıldığında bildirim alın.",
+    "email": "E-posta hatırlatıcıları",
+    "emailDesc": "Kilit açılmadan 7 gün, 1 gün önce ve açıldığında e-posta hatırlatıcıları alın. Bağlı bir cüzdan gerektirir.",
+    "emailPlaceholder": "siz@ornek.com",
+    "emailNeedsWallet": "E-posta hatırlatıcılarını etkinleştirmek için cüzdanınızı bağlayın.",
+    "emailError": "E-posta aboneliği kaydedilemedi. Lütfen tekrar deneyin.",
     "webhook": "Webhook",
     "webhookDesc": "Kilit açma olaylarını bir URL'ye gönderin (Telegram botu, Discord, vb).",
     "enable": "Etkinleştir",
     "enabled": "Etkin",
-    "save": "Kaydet"
+    "save": "Kaydet",
+    "center": {
+      "lockCreatedTitle": "Kilit oluşturuldu",
+      "lockCreatedMessage": "Kilit #{{id}} aktif ve {{date}} tarihinde açılıyor.",
+      "splitLockCreatedTitle": "Bölünmüş kilit oluşturuldu",
+      "splitLockCreatedMessage": "Tokenleriniz {{count}} yararlanıcı için kilitlendi.",
+      "withdrawnTitle": "Çekim onaylandı",
+      "withdrawnMessage": "Kilit #{{id}}'den {{amount}} {{symbol}} çektiniz.",
+      "extendedTitle": "Kilit uzatıldı",
+      "extendedMessage": "Kilit #{{id}} artık {{date}} tarihinde açılıyor.",
+      "transferredTitle": "Yararlanıcı aktarıldı",
+      "transferredMessage": "Kilit #{{id}} artık {{address}} tarafından çekilebilir."
+    }
   },
   "wallet": {
     "disconnected": "Cüzdan bağlantısı kesildi",
@@ -286,5 +313,118 @@
     "minBeneficiaries": "En az 2 yararlanıcı ekleyin veya tek yararlanıcı modunu kullanın.",
     "maxBeneficiaries": "Maksimum 10 yararlanıcıya izin verilir.",
     "submit": "Bölünmüş kilit oluştur"
+  },
+  "errors": {
+    "alreadyWithdrawn": {
+      "title": "Zaten Çekildi",
+      "message": "Bu kilitten tokenler zaten çekildi.",
+      "recovery": null
+    },
+    "amountMustBePositive": {
+      "title": "Geçersiz Miktar",
+      "message": "Kilit miktarı sıfırdan büyük olmalıdır.",
+      "recovery": "Devam etmek için pozitif bir miktar girin."
+    },
+    "canOnlyExtend": {
+      "title": "Geçersiz Uzatma Tarihi",
+      "message": "Yeni tarih, mevcut kilit açma tarihinden sonra olmalıdır.",
+      "recovery": "Daha sonraki bir tarih seçin."
+    },
+    "nothingToRelease": {
+      "title": "Serbest Bırakılacak Bir Şey Yok",
+      "message": "Şu anda hakediş planından serbest bırakılabilecek token bulunmuyor.",
+      "recovery": "Bir sonraki hakediş dönemini bekleyin veya hakediş planını kontrol edin."
+    },
+    "vestingEndBeforeStart": {
+      "title": "Geçersiz Hakediş Planı",
+      "message": "Hakediş bitiş tarihi, hakediş başlangıç tarihinden sonra olmalıdır.",
+      "recovery": "Başlangıç tarihinden sonraki bir hakediş bitiş tarihi seçin."
+    },
+    "tooFewBeneficiaries": {
+      "title": "Yeterli Yararlanıcı Yok",
+      "message": "Bölünmüş bir kilidin en az 2 yararlanıcısı olmalıdır.",
+      "recovery": "Bölünmüş bir kilit oluşturmak için daha fazla yararlanıcı ekleyin."
+    },
+    "tooManyBeneficiaries": {
+      "title": "Çok Fazla Yararlanıcı",
+      "message": "Bölünmüş bir kilidin 10'dan fazla yararlanıcısı olamaz.",
+      "recovery": "Yararlanıcı sayısını 10 veya daha aza indirin."
+    },
+    "sharesMustSum10000": {
+      "title": "Geçersiz Pay Dağılımı",
+      "message": "Yararlanıcı payları tam olarak 10.000 baz puana (%100) ulaşmalıdır.",
+      "recovery": "Toplamın tam olarak 10.000 BPS olması için payları ayarlayın."
+    },
+    "rateLimitExceeded": {
+      "title": "Çok Fazla İstek",
+      "message": "Kilit oluşturma hız sınırını aştınız. Başka bir kilit oluşturmadan önce lütfen bekleyin.",
+      "recovery": "Biraz bekleyip tekrar deneyin."
+    },
+    "insufficientBalance": {
+      "title": "Yetersiz Bakiye",
+      "message": "Bu miktarı kilitlemek için yeterli tokeniniz yok.",
+      "recovery": "Miktarı azaltın veya cüzdanınıza bakiye ekleyin."
+    },
+    "lockDurationTooLong": {
+      "title": "Kilit Süresi Çok Uzun",
+      "message": "Kilit süresi 10 yılı aşamaz.",
+      "recovery": "Bugünden itibaren 10 yıl içinde bir kilit açma tarihi seçin."
+    },
+    "stillLocked": {
+      "title": "Kilit Henüz Sona Ermedi",
+      "message": "Bu kilit henüz kilit açma tarihine ulaşmadı.",
+      "recovery": "Kilit kartında gösterilen kilit açma tarihinde tekrar kontrol edin."
+    },
+    "timeout": {
+      "title": "İşlem Zaman Aşımına Uğradı",
+      "message": "İşlemin onaylanması çok uzun sürdü.",
+      "recovery": "İşlem durumunu Stellar Expert'te kontrol edin."
+    },
+    "unknown": {
+      "title": "Bir Şeyler Ters Gitti",
+      "message": "Beklenmeyen bir hata oluştu.",
+      "recovery": "Lütfen tekrar deneyin. Sorun devam ederse destek ekibiyle iletişime geçin."
+    },
+    "unlockMustBeFuture": {
+      "title": "Geçersiz Kilit Açma Tarihi",
+      "message": "Kilit açma tarihi gelecekte olmalıdır.",
+      "recovery": "Bugünden sonraki bir tarih seçin."
+    },
+    "userRejected": {
+      "title": "İşlem İptal Edildi",
+      "message": "İşlemi cüzdanınızda iptal ettiniz.",
+      "recovery": "Devam etmeye hazır olduğunuzda düğmeye tekrar tıklayın."
+    },
+    "wrongNetwork": {
+      "title": "Yanlış Ağ",
+      "message": "Cüzdanınız yanlış ağa bağlı.",
+      "recovery": "Freighter ayarlarında doğru ağa geçin."
+    },
+    "unlockTooSoon": {
+      "title": "Uzatma Çok Kısa",
+      "message": "Yeni kilit açma tarihi, bir uzatma sayılabilmesi için mevcut tarihten yeterince ileride olmalıdır.",
+      "recovery": "Daha ileride bir tarih seçin."
+    },
+    "extensionLimitReached": {
+      "title": "Uzatma Sınırına Ulaşıldı",
+      "message": "Bu kilit, izin verilen maksimum sayıda zaten uzatıldı.",
+      "recovery": "Bu kilit için başka uzatma yapılamaz."
+    },
+    "unlockExceedsMax": {
+      "title": "Uzatma Çok Uzun",
+      "message": "Yeni kilit açma tarihi, sözleşmenin izin verdiğinden daha ileride.",
+      "recovery": "İzin verilen aralıkta daha erken bir tarih seçin."
+    }
+  },
+  "analytics": {
+    "title": "Analitik",
+    "subtitle": "StellarLock genelinde kilit etkinliği ve toplam kilitli değer.",
+    "totalValueLocked": "Toplam Kilitli Değer",
+    "totalLocks": "Toplam Kilit",
+    "tokensTracked": "Takip Edilen Tokenler",
+    "tvlOverTime": "Zaman İçinde TVL",
+    "lockVolume": "Kilit Oluşturma Hacmi",
+    "tokenDistribution": "Token Dağılımı",
+    "noData": "Henüz görüntülenecek kilit etkinliği yok."
   }
 }

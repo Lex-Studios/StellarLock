@@ -15,7 +15,7 @@ describe("transaction-history", () => {
       vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => ({ successful: true }),
+        json: () => ({ successful: true }),
       }),
     )
   })
@@ -52,7 +52,7 @@ describe("transaction-history", () => {
       vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        json: async () => ({ successful: false }),
+        json: () => ({ successful: false }),
       }),
     )
 
@@ -80,10 +80,7 @@ describe("transaction-history", () => {
       timestamp: ninetyOneDaysAgo,
       network: "testnet",
     }
-    localStorage.setItem(
-      "stellarlock:tx_history",
-      JSON.stringify([oldRecord]),
-    )
+    localStorage.setItem("stellarlock:tx_history", JSON.stringify([oldRecord]))
 
     const records = getTransactions()
     expect(records).toHaveLength(0)
@@ -98,10 +95,7 @@ describe("transaction-history", () => {
       timestamp: eightyNineDaysAgo,
       network: "testnet",
     }
-    localStorage.setItem(
-      "stellarlock:tx_history",
-      JSON.stringify([recentRecord]),
-    )
+    localStorage.setItem("stellarlock:tx_history", JSON.stringify([recentRecord]))
 
     const records = getTransactions()
     expect(records).toHaveLength(1)
@@ -114,7 +108,7 @@ describe("transaction-history", () => {
       vi.fn().mockResolvedValue({
         ok: false,
         status: 404,
-        json: async () => ({}),
+        json: () => ({}),
       }),
     )
 
@@ -130,7 +124,7 @@ describe("transaction-history", () => {
       vi.fn().mockResolvedValue({
         ok: false,
         status: 500,
-        json: async () => ({}),
+        json: () => ({}),
       }),
     )
 

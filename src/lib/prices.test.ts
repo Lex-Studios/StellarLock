@@ -10,12 +10,7 @@
  *  - Contract token (C... address) always returns 0 — known gap documented in issue
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import {
-  getTokenPriceUsd,
-  estimateUsdValue,
-  fetchPricesBatch,
-  invalidatePriceCache,
-} from "@/lib/prices"
+import { getTokenPriceUsd, estimateUsdValue, fetchPricesBatch, invalidatePriceCache } from "@/lib/prices"
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -23,7 +18,7 @@ import {
 function orderBookResponse(bid: string, ask: string) {
   return {
     ok: true,
-    json: async () => ({
+    json: () => ({
       bids: [{ price: bid }],
       asks: [{ price: ask }],
     }),
@@ -33,17 +28,16 @@ function orderBookResponse(bid: string, ask: string) {
 function emptyOrderBook() {
   return {
     ok: true,
-    json: async () => ({ bids: [], asks: [] }),
+    json: () => ({ bids: [], asks: [] }),
   } as unknown as Response
 }
 
 function failedResponse(status = 500) {
-  return { ok: false, status, json: async () => ({}) } as unknown as Response
+  return { ok: false, status, json: () => ({}) } as unknown as Response
 }
 
 // A classic Stellar asset address (G...) — prices.ts only supports these via
 // Horizon orderbook. Contract tokens (C...) always return 0.
-const CLASSIC_TOKEN = "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"
 const CONTRACT_TOKEN = "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW"
 
 // ── tests ──────────────────────────────────────────────────────────────────────

@@ -24,8 +24,13 @@ export default tseslint.config(
             ".storybook/*.ts",
             ".storybook/*.tsx",
             "api/*.ts",
+            "api/_lib/*.ts",
+            "api/notifications/*.ts",
             "indexer/*.ts",
           ],
+          // The globs above intentionally span more than the typescript-eslint
+          // default cap of 8 files sharing the synthetic "default project".
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20,
         },
         tsconfigRootDir: import.meta.dirname,
       },

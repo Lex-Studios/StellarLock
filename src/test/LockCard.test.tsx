@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -5,6 +6,11 @@ import { render } from "./utils"
 import { LockCard } from "@/components/locks/LockCard"
 import { mockLock, mockLpLock, VALID_PUBLIC_KEY } from "./mocks"
 import type { Lock } from "@/types/lock"
+
+vi.mock("@/hooks/useWallet", () => ({
+  useWallet: vi.fn(),
+  WalletProvider: ({ children }: { children: ReactNode }) => children,
+}))
 
 // Mock useVerifiedToken — not relevant to card rendering tests
 vi.mock("@/hooks/useVerifiedToken", () => ({
@@ -37,31 +43,37 @@ describe("LockCard", () => {
   })
 
   it("renders token symbol and name", () => {
-    render(<LockCard lock={mockLock as Lock} />)
+    render(<LockCard lock={mockLock} />)
     expect(screen.getByText("USDC")).toBeInTheDocument()
     expect(screen.getByText("USD Coin")).toBeInTheDocument()
   })
 
   it("renders the locked amount", () => {
-    render(<LockCard lock={mockLock as Lock} />)
+    render(<LockCard lock={mockLock} />)
     // formatAmount with compact flag — just confirm some amount text is present
     expect(screen.getByText(/1[,.]?000|1K/i)).toBeInTheDocument()
   })
 
   it("renders StatusBadge with correct status", () => {
-    render(<LockCard lock={mockLock as Lock} />)
+    render(<LockCard lock={mockLock} />)
     // StatusBadge renders the status text
     expect(screen.getByText(/locked/i)).toBeInTheDocument()
   })
 
   it("renders as a link pointing to the lock detail page", () => {
-    render(<LockCard lock={mockLock as Lock} />)
+    render(<LockCard lock={mockLock} />)
     const link = screen.getByRole("link")
-    expect(link).toHaveAttribute("href", `/app/lock/${mockLock.id}`)
+    expect(link).toHaveAttribute("href", `/app/lock/token/${mockLock.id}`)
+  })
+
+  it("includes the lock kind in an LP lock detail link", () => {
+    render(<LockCard lock={mockLpLock} />)
+    const link = screen.getByRole("link")
+    expect(link).toHaveAttribute("href", `/app/lock/lp/${mockLpLock.id}`)
   })
 
   it("renders the CountdownTimer and LockProgressBar", () => {
-    render(<LockCard lock={mockLock as Lock} />)
+    render(<LockCard lock={mockLock} />)
     expect(screen.getByTestId("countdown-timer")).toBeInTheDocument()
     expect(screen.getByTestId("lock-progress-bar")).toBeInTheDocument()
   })
@@ -96,26 +108,26 @@ describe("LockCard", () => {
   })
 
   it("does not show extended count when extendedCount is 0", () => {
-    render(<LockCard lock={mockLock as Lock} />)
+    render(<LockCard lock={mockLock} />)
     expect(screen.queryByText(/×/)).not.toBeInTheDocument()
   })
 
   it("renders the short beneficiary address", () => {
-    render(<LockCard lock={mockLock as Lock} />)
+    render(<LockCard lock={mockLock} />)
     // shortAddress truncates the key — verify something from the address is shown
     expect(screen.getByText(/GAAAAA/i)).toBeInTheDocument()
   })
 
   describe("selectable mode", () => {
     it("renders a checkbox when selectable=true", () => {
-      render(<LockCard lock={mockLock as Lock} selectable />)
+      render(<LockCard lock={mockLock} selectable />)
       const checkbox = screen.getByRole("checkbox", { name: /select lock/i })
       expect(checkbox).toBeInTheDocument()
       expect(checkbox).not.toBeChecked()
     })
 
     it("renders checkbox as checked when selected=true", () => {
-      render(<LockCard lock={mockLock as Lock} selectable selected />)
+      render(<LockCard lock={mockLock} selectable selected />)
       const checkbox = screen.getByRole("checkbox", { name: /select lock/i })
       expect(checkbox).toBeChecked()
     })
@@ -123,7 +135,7 @@ describe("LockCard", () => {
     it("calls onSelect with the lock id and new checked value when checkbox changes", async () => {
       const user = userEvent.setup()
       const onSelect = vi.fn()
-      render(<LockCard lock={mockLock as Lock} selectable selected={false} onSelect={onSelect} />)
+      render(<LockCard lock={mockLock} selectable selected={false} onSelect={onSelect} />)
       const checkbox = screen.getByRole("checkbox", { name: /select lock/i })
       await user.click(checkbox)
       expect(onSelect).toHaveBeenCalledWith(mockLock.id, true)
@@ -132,18 +144,19 @@ describe("LockCard", () => {
     it("calls onSelect when the card wrapper is clicked in selectable mode", async () => {
       const user = userEvent.setup()
       const onSelect = vi.fn()
-      render(<LockCard lock={mockLock as Lock} selectable selected={false} onSelect={onSelect} />)
+      render(<LockCard lock={mockLock} selectable selected={false} onSelect={onSelect} />)
       // The outer wrapper has role="checkbox"
-      const wrapper = screen.getByRole("checkbox", { name: /select lock/i }).closest('[role="checkbox"]')
-        ?? screen.getAllByRole("checkbox")[0].closest("div")!
-      await user.click(wrapper!)
+      const wrapper =
+        screen.getByRole("checkbox", { name: /select lock/i }).closest('[role="checkbox"]') ??
+        screen.getAllByRole("checkbox")[0].closest("div")!
+      await user.click(wrapper)
       expect(onSelect).toHaveBeenCalled()
     })
 
     it("calls onSelect on Space key press in selectable mode", async () => {
       const user = userEvent.setup()
       const onSelect = vi.fn()
-      render(<LockCard lock={mockLock as Lock} selectable selected={false} onSelect={onSelect} />)
+      render(<LockCard lock={mockLock} selectable selected={false} onSelect={onSelect} />)
       const wrapper = document.querySelector('[role="checkbox"][tabindex="0"]') as HTMLElement
       wrapper.focus()
       await user.keyboard(" ")
@@ -151,14 +164,14 @@ describe("LockCard", () => {
     })
 
     it("renders wrapper as checkbox role with aria-checked when selectable", () => {
-      render(<LockCard lock={mockLock as Lock} selectable selected={false} />)
+      render(<LockCard lock={mockLock} selectable selected={false} />)
       const wrapper = document.querySelector('[role="checkbox"][tabindex="0"]')
       expect(wrapper).toBeInTheDocument()
       expect(wrapper).toHaveAttribute("aria-checked", "false")
     })
 
     it("sets aria-checked=true when selected", () => {
-      render(<LockCard lock={mockLock as Lock} selectable selected />)
+      render(<LockCard lock={mockLock} selectable selected />)
       const wrapper = document.querySelector('[role="checkbox"][tabindex="0"]')
       expect(wrapper).toHaveAttribute("aria-checked", "true")
     })

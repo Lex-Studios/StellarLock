@@ -231,7 +231,19 @@
     "webhookDesc": "Send unlock events to a URL (Telegram bot, Discord, etc).",
     "enable": "Enable",
     "enabled": "Enabled",
-    "save": "Save"
+    "save": "Save",
+    "center": {
+      "lockCreatedTitle": "Lock created",
+      "lockCreatedMessage": "Lock #{{id}} is active and unlocks on {{date}}.",
+      "splitLockCreatedTitle": "Split lock created",
+      "splitLockCreatedMessage": "Your tokens were locked for {{count}} beneficiaries.",
+      "withdrawnTitle": "Withdrawal confirmed",
+      "withdrawnMessage": "You withdrew {{amount}} {{symbol}} from lock #{{id}}.",
+      "extendedTitle": "Lock extended",
+      "extendedMessage": "Lock #{{id}} now unlocks on {{date}}.",
+      "transferredTitle": "Beneficiary transferred",
+      "transferredMessage": "Lock #{{id}} can now be withdrawn by {{address}}."
+    }
   },
   "lockCard": {
     "lockedAmount": "Locked amount",
@@ -347,6 +359,21 @@
       "title": "Too Many Requests",
       "message": "You've exceeded the rate limit for creating locks. Please wait before creating another lock.",
       "recovery": "Wait a moment and try again."
+    },
+    "unlockTooSoon": {
+      "title": "Extension Too Short",
+      "message": "The new unlock date must be far enough past the current one to count as an extension.",
+      "recovery": "Choose a date further in the future."
+    },
+    "extensionLimitReached": {
+      "title": "Extension Limit Reached",
+      "message": "This lock has already been extended the maximum number of times allowed.",
+      "recovery": "No further extensions are possible for this lock."
+    },
+    "unlockExceedsMax": {
+      "title": "Extension Too Long",
+      "message": "The new unlock date is further in the future than the contract allows.",
+      "recovery": "Choose an earlier date within the allowed range."
     },
     "insufficientBalance": {
       "title": "Insufficient Balance",

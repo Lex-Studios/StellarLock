@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import { useModalFocusTrap } from "@/lib/modalFocusTrap"
 import { BookUser, Plus, Pencil, Trash2, Check, X, Download, Upload, Search } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { Input, Label } from "@/components/ui/Input"
-import { isValidStellarAddress, shortAddress } from "@/lib/utils"
+import { shortAddress } from "@/lib/utils"
+import { isValidStellarAddress } from "@/lib/stellar-address"
 import { useAddressBook, type AddressBookEntry } from "@/hooks/useAddressBook"
 import { createPortal } from "react-dom"
 

@@ -3,12 +3,7 @@ import { createLogger } from "@/lib/logger"
 const log = createLogger("sentry")
 
 export interface SentryGlobal {
-  init(options: {
-    dsn?: string
-    environment?: string
-    tracesSampleRate?: number
-    integrations?: unknown[]
-  }): void
+  init(options: { dsn?: string; environment?: string; tracesSampleRate?: number; integrations?: unknown[] }): void
   Replay: new (options: { maskAllText: boolean; blockAllMedia: boolean }) => unknown
   captureException(error: Error, options?: { contexts?: { custom?: Record<string, unknown> } }): void
   captureMessage(message: string, level: "info" | "warning" | "error"): void
@@ -32,7 +27,7 @@ function isDevelopment(): boolean {
 }
 
 function getSentryDSN(): string | undefined {
-  return import.meta.env.VITE_SENTRY_DSN as string | undefined
+  return import.meta.env.VITE_SENTRY_DSN
 }
 
 function initSentry(): void {
@@ -42,8 +37,7 @@ function initSentry(): void {
 
   const script = document.createElement("script")
   script.src = "https://browser.sentry-cdn.com/7.80.0/bundle.min.js"
-  script.integrity =
-    "sha384-DDlbyraQegZ1j3VPrD5tJlHXbXK3ornVnW23Jmp0VqfnlAcsWNFjlMeJ8o8zdiZD"
+  script.integrity = "sha384-DDlbyraQegZ1j3VPrD5tJlHXbXK3ornVnW23Jmp0VqfnlAcsWNFjlMeJ8o8zdiZD"
   script.crossOrigin = "anonymous"
 
   script.onload = () => {
@@ -94,11 +88,7 @@ export function captureMessage(message: string, level: "info" | "warning" | "err
   }
 }
 
-export function addBreadcrumb(
-  message: string,
-  category: string,
-  data?: Record<string, unknown>,
-): void {
+export function addBreadcrumb(message: string, category: string, data?: Record<string, unknown>): void {
   const Sentry = window.Sentry
   if (Sentry) {
     Sentry.addBreadcrumb({
