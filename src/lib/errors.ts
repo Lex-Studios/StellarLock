@@ -168,6 +168,11 @@ export function parseError(err: unknown): StructuredError {
   const walletErr = parseWalletError(err)
   if (walletErr) return walletErr
 
+  // Try to extract Soroban contract error code
+  const raw = String((err as { message?: string })?.message ?? "")
+  const code = Object.keys(CONTRACT_ERRORS).find((key) => new RegExp(`\\b${key}\\b`).test(raw))
+
+  if (code) {
   // Try to extract Soroban contract error code. The numeric code alternative
   // is tried first by the regex engine because it starts earlier in the
   // string (e.g. "Error(Contract, #1): AmountMustBePositive"), so it must
