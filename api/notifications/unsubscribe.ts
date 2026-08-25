@@ -45,7 +45,8 @@ export default function handler(req: Req, res: Res) {
     return res.status(400).json({ error: 'address query param must be a valid Stellar address' })
   }
 
-  const lockId = /^\d+$/.test(rawLockId) ? `token:${rawLockId}` : rawLockId
+  const trimmedLockId = rawLockId.trim()
+  const lockId = /^\d+$/.test(trimmedLockId) ? `token:${trimmedLockId}` : trimmedLockId
 
   db.prepare(
     'DELETE FROM notification_subscriptions WHERE address = ? AND lock_id = ?',

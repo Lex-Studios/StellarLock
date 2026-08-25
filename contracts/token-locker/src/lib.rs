@@ -78,6 +78,9 @@ pub enum ContractError {
     NotAdmin = 15,
     NoPendingAdmin = 13,
     NotPendingAdmin = 14,
+    NotInitialized = 16,
+    TimelockNotElapsed = 17,
+    NoPendingUpgrade = 18,
     ReentrancyDetected = 16,
     LockNotFound = 17,
 }
@@ -629,6 +632,13 @@ impl TokenLocker {
         if unlock_at <= now {
             return Err(ContractError::UnlockMustBeFuture);
         }
+
+        let rate_key = DataKey::LastLockAt(creator.clone());
+        let last_at: u64 = env.storage().temporary().get(&rate_key).unwrap_or(0);
+        if now.saturating_sub(last_at) < RATE_LIMIT_COOLDOWN {
+            return Err(ContractError::RateLimitExceeded);
+        }
+
         if let Some(ref v) = vesting {
             if v.end <= v.start {
                 return Err(ContractError::VestingEndBeforeStart);
@@ -708,6 +718,13 @@ impl TokenLocker {
             DataKey::SplitByCreator(creator.clone()),
             group_id,
             false,
+        );
+
+        env.storage().temporary().set(&rate_key, &now);
+        env.storage().temporary().extend_ttl(
+            &rate_key,
+            RATE_LIMIT_TTL_LEDGERS,
+            RATE_LIMIT_TTL_LEDGERS,
         );
 
         env.events().publish(
@@ -792,7 +809,7 @@ impl TokenLocker {
             .storage()
             .instance()
             .get(&DataKey::Admin)
-            .expect("not initialised");
+            .ok_or(ContractError::NotInitialized)?;
         admin.require_auth();
         env.storage()
             .instance()
@@ -840,11 +857,27 @@ impl TokenLocker {
     }
 
     /// Admin proposes a WASM upgrade. Executable only after 7 days.
+    pub fn propose_upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), ContractError> {
     pub fn propose_upgrade(env: Env, new_wasm_hash: BytesN<32>) {
         let admin: Address = env
             .storage()
             .instance()
             .get(&DataKey::Admin)
+            .ok_or(ContractError::NotInitialized)?;
+        admin.require_auth();
+        let execute_after = env.ledger().timestamp() + UPGRADE_DELAY;
+        let proposal = UpgradeProposal { new_wasm_hash, execute_after };
+        env.storage().instance().set(&DataKey::UpgradeProposal, &proposal);
+        env.storage().instance().extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
+        env.events().publish(
+            (Symbol::new(&env, "upgrade_proposed"), execute_after),
+            (),
+        );
+        Ok(())
+    }
+
+    /// Execute a previously proposed upgrade after the timelock has elapsed.
+    pub fn execute_upgrade(env: Env) -> Result<(), ContractError> {
             .expect("not initialised");
         admin.require_auth();
         let execute_after = env.ledger().timestamp() + UPGRADE_DELAY;
@@ -868,17 +901,24 @@ impl TokenLocker {
             .storage()
             .instance()
             .get(&DataKey::Admin)
+            .ok_or(ContractError::NotInitialized)?;
             .expect("not initialised");
         admin.require_auth();
         let proposal: UpgradeProposal = env
             .storage()
             .instance()
             .get(&DataKey::UpgradeProposal)
-            .expect("no pending upgrade");
+            .ok_or(ContractError::NoPendingUpgrade)?;
         if env.ledger().timestamp() < proposal.execute_after {
-            panic!("timelock not elapsed");
+            return Err(ContractError::TimelockNotElapsed);
         }
         env.storage().instance().remove(&DataKey::UpgradeProposal);
+        env.deployer().update_current_contract_wasm(proposal.new_wasm_hash);
+        Ok(())
+    }
+
+    /// Cancel a pending upgrade. Admin only.
+    pub fn cancel_upgrade(env: Env) -> Result<(), ContractError> {
         env.deployer()
             .update_current_contract_wasm(proposal.new_wasm_hash);
     }
@@ -889,6 +929,11 @@ impl TokenLocker {
             .storage()
             .instance()
             .get(&DataKey::Admin)
+            .ok_or(ContractError::NotInitialized)?;
+        admin.require_auth();
+        env.storage().instance().remove(&DataKey::UpgradeProposal);
+        env.events().publish((Symbol::new(&env, "upgrade_cancelled"),), ());
+        Ok(())
             .expect("not initialised");
         admin.require_auth();
         env.storage().instance().remove(&DataKey::UpgradeProposal);

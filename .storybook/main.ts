@@ -15,7 +15,7 @@ const config: StorybookConfig = {
   docs: {
     autodocs: "tag",
   },
-  viteFinal: async (config) => {
+  viteFinal: (config) => {
     // Vite's loadEnv merges process.env VITE_* vars into import.meta.env, so setting
     // these here prevents the ENV module from throwing when no .env file is present.
     process.env.VITE_NETWORK ??= "testnet"

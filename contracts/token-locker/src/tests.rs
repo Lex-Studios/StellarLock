@@ -2,6 +2,7 @@
 
 use soroban_sdk::{
     testutils::{Address as _, Ledger},
+    token, vec, Address, BytesN, Env,
     token, vec, Address, Env, IntoVal,
 };
 
@@ -876,6 +877,136 @@ fn create_split_lock_succeeds_and_allocates_correctly() {
     assert_eq!(lock1.beneficiary, b2);
 }
 
+// ── Rate limiting (#203 / create_split_lock parity) ───────────────────────────
+
+#[test]
+fn create_lock_back_to_back_is_rate_limited() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &token_id, &creator, 1_000);
+    let unlock_at = env.ledger().timestamp() + 100;
+
+    client.create_lock(
+        &creator,
+        &token_id,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+
+    let result = client.try_create_lock(
+        &creator,
+        &token_id,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+    assert_eq!(result, Err(Ok(ContractError::RateLimitExceeded)));
+}
+
+#[test]
+fn create_split_lock_back_to_back_is_rate_limited() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &token_id, &creator, 20_000);
+    let unlock_at = env.ledger().timestamp() + 100;
+    let allocations = vec![&env, (b1.clone(), 7_000_u64), (b2.clone(), 3_000_u64)];
+
+    client.create_split_lock(
+        &creator,
+        &token_id,
+        &10_000_i128,
+        &allocations,
+        &unlock_at,
+        &None,
+    );
+
+    let result = client.try_create_split_lock(
+        &creator,
+        &token_id,
+        &10_000_i128,
+        &allocations,
+        &unlock_at,
+        &None,
+    );
+    assert_eq!(result, Err(Ok(ContractError::RateLimitExceeded)));
+}
+
+#[test]
+fn create_split_lock_and_create_lock_share_the_same_rate_limit() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &token_id, &creator, 20_000);
+    let unlock_at = env.ledger().timestamp() + 100;
+
+    client.create_lock(
+        &creator,
+        &token_id,
+        &100_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+
+    // A create_lock immediately followed by a create_split_lock from the same
+    // creator must also be rate-limited: both entry points share DataKey::LastLockAt.
+    let result = client.try_create_split_lock(
+        &creator,
+        &token_id,
+        &10_000_i128,
+        &vec![&env, (b1.clone(), 7_000_u64), (b2.clone(), 3_000_u64)],
+        &unlock_at,
+        &None,
+    );
+    assert_eq!(result, Err(Ok(ContractError::RateLimitExceeded)));
+}
+
+#[test]
+fn create_split_lock_succeeds_after_cooldown_elapses() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &token_id, &creator, 20_000);
+
+    let unlock_at_1 = env.ledger().timestamp() + 100;
+    client.create_split_lock(
+        &creator,
+        &token_id,
+        &10_000_i128,
+        &vec![&env, (b1.clone(), 7_000_u64), (b2.clone(), 3_000_u64)],
+        &unlock_at_1,
+        &None,
+    );
+
+    advance_time(&env, 60);
+    let unlock_at_2 = env.ledger().timestamp() + 100;
+    let group_id = client.create_split_lock(
+        &creator,
+        &token_id,
+        &10_000_i128,
+        &vec![&env, (b1, 7_000_u64), (b2, 3_000_u64)],
+        &unlock_at_2,
+        &None,
+    );
+    assert!(client.get_split_group(&group_id).is_some());
+}
+
 // ── Storage optimization: selective TTL (#148) ────────────────────────────────
 // Active locks must use PERSISTENT_BUMP (365 days); withdrawn locks must use
 // WITHDRAWN_BUMP (30 days). We verify the observable effect: after withdrawal
@@ -1352,4 +1483,96 @@ fn unauthorized_address_cannot_transfer_beneficiary() {
         result.is_err(),
         "transfer_beneficiary by an unauthorized address must be rejected"
     );
+}
+
+// ── Upgrade timelock ──────────────────────────────────────────────────────────
+
+#[test]
+fn propose_upgrade_fails_when_not_initialized() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let wasm_hash = BytesN::from_array(&env, &[0u8; 32]);
+    let result = client.try_propose_upgrade(&wasm_hash);
+    assert_eq!(result, Err(Ok(ContractError::NotInitialized)));
+}
+
+#[test]
+fn execute_upgrade_fails_when_not_initialized() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let result = client.try_execute_upgrade();
+    assert_eq!(result, Err(Ok(ContractError::NotInitialized)));
+}
+
+#[test]
+fn cancel_upgrade_fails_when_not_initialized() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let result = client.try_cancel_upgrade();
+    assert_eq!(result, Err(Ok(ContractError::NotInitialized)));
+}
+
+#[test]
+fn execute_upgrade_fails_when_no_pending_upgrade() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.init(&admin);
+
+    let result = client.try_execute_upgrade();
+    assert_eq!(result, Err(Ok(ContractError::NoPendingUpgrade)));
+}
+
+#[test]
+fn execute_upgrade_fails_before_timelock_elapses() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.init(&admin);
+
+    let wasm_hash = BytesN::from_array(&env, &[1u8; 32]);
+    client.propose_upgrade(&wasm_hash);
+
+    // Advance time by less than the 7-day timelock (UPGRADE_DELAY = 7 * 24 * 3600)
+    advance_time(&env, 6 * 24 * 3600);
+
+    let result = client.try_execute_upgrade();
+    assert_eq!(result, Err(Ok(ContractError::TimelockNotElapsed)));
+}
+
+#[test]
+fn propose_upgrade_succeeds_after_init() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.init(&admin);
+
+    let wasm_hash = BytesN::from_array(&env, &[2u8; 32]);
+    assert!(client.try_propose_upgrade(&wasm_hash).is_ok());
+}
+
+#[test]
+fn cancel_upgrade_clears_pending_proposal() {
+    let (env, contract_id, _token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    client.init(&admin);
+
+    let wasm_hash = BytesN::from_array(&env, &[3u8; 32]);
+    client.propose_upgrade(&wasm_hash);
+
+    // Cancel the proposal
+    client.cancel_upgrade();
+
+    // After cancellation there is no pending upgrade, so execute must fail with NoPendingUpgrade
+    advance_time(&env, 8 * 24 * 3600);
+    let result = client.try_execute_upgrade();
+    assert_eq!(result, Err(Ok(ContractError::NoPendingUpgrade)));
 }

@@ -4,12 +4,18 @@ import {
   useNotificationPrefs,
   useBrowserNotifications,
   useNotificationCenter,
+  addNotification,
+  resetNotificationStore,
   scheduleUnlockReminder,
   sendWebhook,
   subscribeNotifications,
   unsubscribeNotifications,
-  type Notification,
 } from "@/hooks/useNotifications"
+
+type GlobalWithNotification = Omit<typeof globalThis, "Notification"> & {
+  Notification?: typeof Notification
+}
+const globalWithNotification = globalThis as GlobalWithNotification
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -102,10 +108,9 @@ describe("useBrowserNotifications", () => {
   })
 
   it("returns 'denied' when Notification is not defined", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const saved = (global as any).Notification
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (global as any).Notification
+    const globalWithNotification = globalThis as { Notification?: unknown }
+    const saved = globalWithNotification.Notification
+    delete globalWithNotification.Notification
 
     const { result } = renderHook(() => useBrowserNotifications())
     expect(result.current.permission).toBe("denied")
@@ -113,8 +118,7 @@ describe("useBrowserNotifications", () => {
     const returned = await act(async () => result.current.requestPermission())
     expect(returned).toBe("denied")
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(global as any).Notification = saved
+    globalWithNotification.Notification = saved
   })
 })
 
@@ -125,6 +129,9 @@ describe("useBrowserNotifications", () => {
 describe("useNotificationCenter", () => {
   beforeEach(() => {
     localStorage.clear()
+    // The history lives in a module-level store, so clearing storage is not
+    // enough — the store has to be re-read for each test to start empty.
+    resetNotificationStore()
   })
 
   it("starts with an empty notification list", () => {
@@ -212,6 +219,59 @@ describe("useNotificationCenter", () => {
     expect(localStorage.getItem("stellarlock:notification_history")).toBe("[]")
   })
 
+  it("shares one history across every hook instance", () => {
+    const { result: bell } = renderHook(() => useNotificationCenter())
+    const { result: page } = renderHook(() => useNotificationCenter())
+
+    act(() => {
+      page.current.addNotification({
+        type: "lock_created",
+        lockId: LOCK_ID,
+        title: "Lock created",
+        message: "Your lock is active.",
+      })
+    })
+
+    // The navbar bell renders from a different subtree than the code that
+    // records the activity — both must see the same entry.
+    expect(bell.current.notifications).toHaveLength(1)
+    expect(bell.current.unreadCount).toBe(1)
+  })
+
+  it("updates a mounted center when addNotification is called outside React", () => {
+    const { result } = renderHook(() => useNotificationCenter())
+
+    act(() => {
+      addNotification({
+        type: "lock_withdrawn",
+        lockId: LOCK_ID,
+        lockKind: "token",
+        title: "Withdrawal confirmed",
+        message: "You withdrew 100 USDC.",
+      })
+    })
+
+    expect(result.current.notifications[0].type).toBe("lock_withdrawn")
+    expect(result.current.unreadCount).toBe(1)
+  })
+
+  it("drops a notification whose category is disabled in the global prefs", () => {
+    const { result: prefs } = renderHook(() => useNotificationPrefs())
+    act(() => {
+      prefs.current.update({ types: { lock_extended: false } })
+    })
+
+    const { result } = renderHook(() => useNotificationCenter())
+
+    act(() => {
+      addNotification({ type: "lock_extended", lockId: LOCK_ID, title: "Extended", message: "" })
+      addNotification({ type: "lock_created", lockId: LOCK_ID, title: "Created", message: "" })
+    })
+
+    expect(result.current.notifications).toHaveLength(1)
+    expect(result.current.notifications[0].type).toBe("lock_created")
+  })
+
   it("caps the history at 20 notifications", () => {
     const { result } = renderHook(() => useNotificationCenter())
 
@@ -264,10 +324,7 @@ describe("scheduleUnlockReminder", () => {
       configurable: true,
     })
 
-    localStorage.setItem(
-      "stellarlock:notification_prefs",
-      JSON.stringify({ global: { browser: false, types: {} } }),
-    )
+    localStorage.setItem("stellarlock:notification_prefs", JSON.stringify({ global: { browser: false, types: {} } }))
 
     const setTimeoutSpy = vi.spyOn(global, "setTimeout")
     scheduleUnlockReminder(LOCK_ID, UNLOCK_AT)

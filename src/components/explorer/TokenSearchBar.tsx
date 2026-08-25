@@ -40,7 +40,7 @@ function addRecentSearch(address: string) {
 }
 
 function resolveNetworkKey(): "testnet" | "mainnet" {
-  const network = (import.meta.env.VITE_NETWORK as string | undefined)?.toLowerCase() ?? "testnet"
+  const network = import.meta.env.VITE_NETWORK?.toLowerCase() ?? "testnet"
   return network === "mainnet" || network === "staging" ? "mainnet" : "testnet"
 }
 
@@ -79,14 +79,17 @@ export function TokenSearchBar({ className, autoFocus }: { className?: string; a
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  const filteredSuggestions = query.trim().length > 0
-    ? verifiedTokens.filter(
-        (token) =>
-          token.symbol.toLowerCase().includes(query.toLowerCase()) ||
-          token.name.toLowerCase().includes(query.toLowerCase()) ||
-          token.address.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 5)
-    : []
+  const filteredSuggestions =
+    query.trim().length > 0
+      ? verifiedTokens
+          .filter(
+            (token) =>
+              token.symbol.toLowerCase().includes(query.toLowerCase()) ||
+              token.name.toLowerCase().includes(query.toLowerCase()) ||
+              token.address.toLowerCase().includes(query.toLowerCase()),
+          )
+          .slice(0, 5)
+      : []
 
   const showRecents = query.trim().length === 0 && recentSearches.length > 0
   const suggestions = showRecents
@@ -184,7 +187,7 @@ export function TokenSearchBar({ className, autoFocus }: { className?: string; a
               onMouseEnter={() => setSelectedIndex(index)}
               className={cn(
                 "flex cursor-pointer items-center gap-3 border-b border-border px-4 py-3 transition-colors last:border-b-0",
-                index === selectedIndex ? "bg-secondary" : "hover:bg-secondary/60"
+                index === selectedIndex ? "bg-secondary" : "hover:bg-secondary/60",
               )}
             >
               {suggestion.isRecent ? (
@@ -195,9 +198,7 @@ export function TokenSearchBar({ className, autoFocus }: { className?: string; a
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{suggestion.symbol}</span>
-                  {!suggestion.isRecent && (
-                    <span className="text-xs text-muted-foreground">{suggestion.name}</span>
-                  )}
+                  {!suggestion.isRecent && <span className="text-xs text-muted-foreground">{suggestion.name}</span>}
                 </div>
                 <p className="truncate font-mono text-xs text-muted-foreground">{suggestion.address}</p>
               </div>
