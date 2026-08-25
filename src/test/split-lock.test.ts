@@ -3,16 +3,16 @@ import { createSplitLock } from "@/lib/split-lock"
 import type { CreateSplitLockArgs, SplitBeneficiary } from "@/lib/split-lock"
 import { xdr } from "@stellar/stellar-sdk"
 
-// We mock the submitCall function from stellar.ts since it actually submits transactions
+// We mock submitCallWithHash from stellar.ts since it actually submits transactions
 vi.mock("@/lib/stellar", () => ({
   CONTRACTS: {
     tokenLocker: "CBMOCKTOKENLOCKERCONTRACTADDRESS1234567890123456789",
   },
   STELLAR_DECIMALS: 10_000_000,
-  submitCall: vi.fn().mockResolvedValue(undefined),
+  submitCallWithHash: vi.fn().mockResolvedValue({ result: undefined, txHash: "mock-tx-hash" }),
 }))
 
-import { submitCall } from "@/lib/stellar"
+import { submitCallWithHash } from "@/lib/stellar"
 
 const VALID_ADDRESS = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
 const VALID_TOKEN = "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW"
@@ -40,8 +40,8 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, vi.fn().mockResolvedValue({ signedTxXdr: "AAAA..." }))
 
-    expect(submitCall).toHaveBeenCalledTimes(1)
-    const callArgs = vi.mocked(submitCall).mock.calls[0]
+    expect(submitCallWithHash).toHaveBeenCalledTimes(1)
+    const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
     expect(callArgs[0]).toBe("CBMOCKTOKENLOCKERCONTRACTADDRESS1234567890123456789")
     expect(callArgs[1]).toBe("create_split_lock")
   })
@@ -52,8 +52,8 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
-    const callArgs = vi.mocked(submitCall).mock.calls[0]
-    const scArgs = callArgs[2] as xdr.ScVal[]
+    const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
+    const scArgs = callArgs[2]
 
     expect(scArgs).toHaveLength(6)
     // scArgs[0] = source address, scArgs[1] = token address, scArgs[2] = amount
@@ -72,8 +72,8 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
-    const callArgs = vi.mocked(submitCall).mock.calls[0]
-    const scArgs = callArgs[2] as xdr.ScVal[]
+    const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
+    const scArgs = callArgs[2]
     const beneficiariesVal = scArgs[3]
 
     // Should be a vec of 2 elements
@@ -92,8 +92,8 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
-    const callArgs = vi.mocked(submitCall).mock.calls[0]
-    const scArgs = callArgs[2] as xdr.ScVal[]
+    const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
+    const scArgs = callArgs[2]
 
     // 6th arg should be a map (vesting config), not void
     expect(scArgs[5].switch()).toBe(xdr.ScValType.scvMap())
@@ -105,8 +105,8 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
-    const callArgs = vi.mocked(submitCall).mock.calls[0]
-    const scArgs = callArgs[2] as xdr.ScVal[]
+    const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
+    const scArgs = callArgs[2]
 
     expect(scArgs[5].switch()).toBe(xdr.ScValType.scvVoid())
   })
@@ -119,15 +119,15 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
-    expect(submitCall).toHaveBeenCalledTimes(1)
-    const callArgs = vi.mocked(submitCall).mock.calls[0]
-    const scArgs = callArgs[2] as xdr.ScVal[]
+    expect(submitCallWithHash).toHaveBeenCalledTimes(1)
+    const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
+    const scArgs = callArgs[2]
     const beneficiariesVal = scArgs[3]
     expect(beneficiariesVal.vec()).toHaveLength(1)
   })
 
   it("should handle many beneficiaries (up to 10)", async () => {
-    const manyBeneficiaries: SplitBeneficiary[] = Array.from({ length: 10 }, (_, i) => ({
+    const manyBeneficiaries: SplitBeneficiary[] = Array.from({ length: 10 }, () => ({
       address: VALID_ADDRESS,
       shareBps: 1000, // 10% each = 100%
     }))
@@ -136,9 +136,9 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
-    expect(submitCall).toHaveBeenCalledTimes(1)
-    const callArgs = vi.mocked(submitCall).mock.calls[0]
-    const scArgs = callArgs[2] as xdr.ScVal[]
+    expect(submitCallWithHash).toHaveBeenCalledTimes(1)
+    const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
+    const scArgs = callArgs[2]
     expect(scArgs[3].vec()).toHaveLength(10)
   })
 
@@ -149,8 +149,8 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
-    const callArgs = vi.mocked(submitCall).mock.calls[0]
-    const scArgs = callArgs[2] as xdr.ScVal[]
+    const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
+    const scArgs = callArgs[2]
     const amountVal = scArgs[2]
 
     // Should be i128 with value 10_000_000
@@ -159,6 +159,7 @@ describe("createSplitLock", () => {
     const lo = amountVal.i128().lo()
     // 10_000_000 fits in lo
     expect(lo.toBigInt()).toBe(10_000_000n)
+    expect(hi.toBigInt()).toBe(0n)
   })
 
   it("should pass the signTransaction function to submitCall", async () => {
@@ -167,9 +168,18 @@ describe("createSplitLock", () => {
 
     await createSplitLock(args, VALID_ADDRESS, signTx)
 
-    const callArgs = vi.mocked(submitCall).mock.calls[0]
+    const callArgs = vi.mocked(submitCallWithHash).mock.calls[0]
     // 4th arg is sourceAddress, 5th is signTransaction
     expect(callArgs[3]).toBe(VALID_ADDRESS)
     expect(callArgs[4]).toBe(signTx)
+  })
+
+  it("resolves with the submission's txHash so callers can record it in history", async () => {
+    const args = buildBaseArgs()
+    const signTx = vi.fn().mockResolvedValue({ signedTxXdr: "AAAA..." })
+
+    const result = await createSplitLock(args, VALID_ADDRESS, signTx)
+
+    expect(result).toEqual({ txHash: "mock-tx-hash" })
   })
 })

@@ -17,11 +17,13 @@ function drawRow(doc: jsPDF, y: number, label: string, value: string): number {
 
   doc.setFont("helvetica", "normal")
   doc.setTextColor(17, 17, 17)
-  const lines = doc.splitTextToSize(value, CONTENT_W - (COL_VALUE - COL_LABEL))
-  doc.text(lines as string[], COL_VALUE, y)
+  // jsPDF types splitTextToSize's return as `any`; it's documented to return
+  // string[] when given a single string input.
+  const lines = doc.splitTextToSize(value, CONTENT_W - (COL_VALUE - COL_LABEL)) as string[]
+  doc.text(lines, COL_VALUE, y)
 
   const lineH = 6
-  const rowH = Math.max(lineH, (lines as string[]).length * lineH)
+  const rowH = Math.max(lineH, lines.length * lineH)
   doc.setDrawColor(229, 231, 235)
   doc.line(MARGIN, y + 2, PAGE_W - MARGIN, y + 2)
   return y + rowH + 2
@@ -101,7 +103,7 @@ export function downloadLockReport(lock: Lock): void {
   y += 4
   y = drawHeading(doc, y, "On-Chain Verification")
   y = drawRow(doc, y, "Token contract", lock.token.address)
-  y = drawRow(doc, y, "Verify at", `${window.location.origin}/app/lock/${lock.id}`)
+  drawRow(doc, y, "Verify at", `${window.location.origin}/app/lock/${lock.id}`)
 
   // ── Footer ────────────────────────────────────────────────────────────────
   const footerY = 285
@@ -111,18 +113,12 @@ export function downloadLockReport(lock: Lock): void {
   doc.setFont("helvetica", "normal")
   doc.setFontSize(7)
   doc.setTextColor(156, 163, 175)
-  doc.text(
-    `StellarLock · Soroban smart contracts on Stellar · stellarlock.app`,
-    PAGE_W / 2,
-    footerY,
-    { align: "center" },
-  )
-  doc.text(
-    `Report generated ${now} · Lock #${lock.id} · ${shortAddress(lock.creator)}`,
-    PAGE_W / 2,
-    footerY + 4,
-    { align: "center" },
-  )
+  doc.text(`StellarLock · Soroban smart contracts on Stellar · stellarlock.app`, PAGE_W / 2, footerY, {
+    align: "center",
+  })
+  doc.text(`Report generated ${now} · Lock #${lock.id} · ${shortAddress(lock.creator)}`, PAGE_W / 2, footerY + 4, {
+    align: "center",
+  })
 
   const filename = `stellarlock-report-${lock.id}-${new Date().toISOString().slice(0, 10)}.pdf`
   doc.save(filename)

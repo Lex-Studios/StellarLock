@@ -21,7 +21,7 @@ export const Loading: Story = {
   args: {
     contractId: "CA7QYNF5DQX5ZOY2IEVDWQCKLGK2T4OBJCWTYADJUSTEDCONTRACT",
     method: "lock",
-    args: [] as any,
+    args: [],
   },
 }
 
@@ -29,7 +29,7 @@ export const Success: Story = {
   args: {
     contractId: "CA7QYNF5DQX5ZOY2IEVDWQCKLGK2T4OBJCWTYADJUSTEDCONTRACT",
     method: "lock",
-    args: [] as any,
+    args: [],
   },
   parameters: {
     mockData: {
@@ -46,7 +46,7 @@ export const HighCost: Story = {
   args: {
     contractId: "CA7QYNF5DQX5ZOY2IEVDWQCKLGK2T4OBJCWTYADJUSTEDCONTRACT",
     method: "lock",
-    args: [] as any,
+    args: [],
   },
   parameters: {
     mockData: {
@@ -63,7 +63,7 @@ export const Error: Story = {
   args: {
     contractId: "CA7QYNF5DQX5ZOY2IEVDWQCKLGK2T4OBJCWTYADJUSTEDCONTRACT",
     method: "lock",
-    args: [] as any,
+    args: [],
   },
   parameters: {
     mockData: {

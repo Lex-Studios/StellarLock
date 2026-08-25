@@ -6,6 +6,7 @@ import { render } from "./utils"
 import { CreateTokenLockForm } from "@/components/locks/CreateTokenLockForm"
 import { mockWallet, VALID_CONTRACT_ADDRESS, VALID_PUBLIC_KEY } from "./mocks"
 import { useTokenAllowance, useTokenBalance } from "@/hooks/useLocks"
+import { resetNotificationStore } from "@/hooks/useNotifications"
 
 // Mock the wallet context
 vi.mock("@/hooks/useWallet", () => ({
@@ -49,9 +50,29 @@ vi.mock("@/lib/analytics", () => ({
   trackEvent: vi.fn(),
 }))
 
+const NOTIFICATION_HISTORY_KEY = "stellarlock:notification_history"
+
+function readNotificationHistory(): { type: string; lockId: string; read: boolean; title: string }[] {
+  return JSON.parse(localStorage.getItem(NOTIFICATION_HISTORY_KEY) ?? "[]") as {
+    type: string
+    lockId: string
+    read: boolean
+    title: string
+  }[]
+}
+vi.mock("@/lib/split-lock", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/split-lock")>()
+  return {
+    ...actual,
+    createSplitLock: vi.fn().mockResolvedValue({ txHash: "split-tx-hash" }),
+  }
+})
+
 describe("Token Lock Creation Flow", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
+    resetNotificationStore()
   })
 
   it("should render the token lock form with all fields", () => {
@@ -200,6 +221,62 @@ describe("Token Lock Creation Flow", () => {
     await waitFor(() => {
       expect(screen.getByText(/confirm token lock/i)).toBeInTheDocument()
     })
+  })
+
+  it("should record an in-app notification once the lock is created", async () => {
+    const user = userEvent.setup()
+    render(<CreateTokenLockForm />)
+
+    const tokenInput = screen.getByPlaceholderText(/token/i)
+    const dateInput = screen.getByLabelText(/unlock date/i)
+
+    await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
+    const amountInputs = screen.getAllByDisplayValue("")
+    await user.type(amountInputs[0], "100")
+
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 30)
+    await user.type(dateInput, futureDate.toISOString().split("T")[0])
+
+    await user.click(screen.getByRole("button", { name: /lock tokens/i }))
+    await user.click(await screen.findByRole("button", { name: /confirm & lock/i }))
+
+    // The navbar bell reads this history, so a successful creation has to
+    // leave an unread entry pointing at the new lock behind.
+    await waitFor(() => {
+      expect(readNotificationHistory()).toHaveLength(1)
+    })
+    const [entry] = readNotificationHistory()
+    expect(entry.type).toBe("lock_created")
+    expect(entry.lockId).toBe("1")
+    expect(entry.read).toBe(false)
+  })
+
+  it("should not record a notification when lock creation fails", async () => {
+    const { createTokenLock } = await import("@/lib/token-locker")
+    vi.mocked(createTokenLock).mockRejectedValueOnce(new Error("User rejected"))
+
+    const user = userEvent.setup()
+    render(<CreateTokenLockForm />)
+
+    const tokenInput = screen.getByPlaceholderText(/token/i)
+    const dateInput = screen.getByLabelText(/unlock date/i)
+
+    await user.type(tokenInput, VALID_CONTRACT_ADDRESS)
+    const amountInputs = screen.getAllByDisplayValue("")
+    await user.type(amountInputs[0], "100")
+
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 30)
+    await user.type(dateInput, futureDate.toISOString().split("T")[0])
+
+    await user.click(screen.getByRole("button", { name: /lock tokens/i }))
+    await user.click(await screen.findByRole("button", { name: /confirm & lock/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/transaction cancelled/i)).toBeInTheDocument()
+    })
+    expect(readNotificationHistory()).toHaveLength(0)
   })
 
   it("should handle network errors gracefully", async () => {
@@ -370,5 +447,41 @@ describe("Token Lock Creation Flow", () => {
 
     const confirmButton = screen.getByRole("button", { name: /insufficient balance/i })
     expect(confirmButton).toBeDisabled()
+  })
+
+  it("records a split_lock transaction with the real hash when creating a multi-beneficiary lock", async () => {
+    localStorage.clear()
+    // Earlier tests in this file override these mocks with mockReturnValue
+    // (not mockReturnValueOnce) and beforeEach only clearAllMocks(), which
+    // doesn't restore implementations — so pin these explicitly rather than
+    // depend on test order.
+    vi.mocked(useTokenBalance).mockReturnValue({ data: 5000, loading: false, error: null, reload: vi.fn() })
+    vi.mocked(useTokenAllowance).mockReturnValue({ data: 10000, loading: false, error: null, reload: vi.fn() })
+    const user = userEvent.setup()
+    render(<CreateTokenLockForm />)
+
+    await user.type(screen.getByLabelText(/token contract address/i), VALID_CONTRACT_ADDRESS)
+    await user.type(screen.getByLabelText(/amount/i), "100")
+
+    await user.click(screen.getByRole("checkbox", { name: /multiple beneficiaries/i }))
+
+    const addressInputs = screen.getAllByPlaceholderText(/^G…$/)
+    await user.type(addressInputs[0], VALID_PUBLIC_KEY)
+    await user.type(addressInputs[1], VALID_PUBLIC_KEY)
+
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 30)
+    await user.type(screen.getByLabelText(/unlock date/i), futureDate.toISOString().split("T")[0])
+
+    await user.click(screen.getByRole("button", { name: /create split lock/i }))
+    await user.click(await screen.findByRole("button", { name: /confirm & lock/i }))
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem("stellarlock:tx_history") ?? "[]") as Array<{
+        hash: string
+        type: string
+      }>
+      expect(stored).toContainEqual(expect.objectContaining({ hash: "split-tx-hash", type: "split_lock" }))
+    })
   })
 })

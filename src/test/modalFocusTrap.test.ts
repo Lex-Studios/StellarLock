@@ -29,7 +29,7 @@ describe("useModalFocusTrap", () => {
   beforeEach(() => {
     document.body.innerHTML = ""
     // Reset focus to body before each test
-    ;(document.body as HTMLElement).focus?.()
+    document.body.focus?.()
   })
 
   describe("basic behavior", () => {

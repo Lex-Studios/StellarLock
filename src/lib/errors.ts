@@ -93,6 +93,27 @@ const CONTRACT_ERRORS: Record<string, Omit<StructuredError, "code">> = {
     link: null,
     i18nKey: "errors.rateLimitExceeded",
   },
+  UnlockTooSoon: {
+    title: "errors.unlockTooSoon.title",
+    message: "errors.unlockTooSoon.message",
+    recovery: "errors.unlockTooSoon.recovery",
+    link: null,
+    i18nKey: "errors.unlockTooSoon",
+  },
+  ExtensionLimitReached: {
+    title: "errors.extensionLimitReached.title",
+    message: "errors.extensionLimitReached.message",
+    recovery: "errors.extensionLimitReached.recovery",
+    link: null,
+    i18nKey: "errors.extensionLimitReached",
+  },
+  UnlockExceedsMax: {
+    title: "errors.unlockExceedsMax.title",
+    message: "errors.unlockExceedsMax.message",
+    recovery: "errors.unlockExceedsMax.recovery",
+    link: null,
+    i18nKey: "errors.unlockExceedsMax",
+  },
 }
 
 // Map wallet/network errors
@@ -152,6 +173,17 @@ export function parseError(err: unknown): StructuredError {
   const code = Object.keys(CONTRACT_ERRORS).find((key) => new RegExp(`\\b${key}\\b`).test(raw))
 
   if (code) {
+  // Try to extract Soroban contract error code. The numeric code alternative
+  // is tried first by the regex engine because it starts earlier in the
+  // string (e.g. "Error(Contract, #1): AmountMustBePositive"), so it must
+  // capture the trailing symbolic name itself rather than leaving that to a
+  // separate alternative — otherwise `code` ends up as the digit string,
+  // which never matches a key in CONTRACT_ERRORS.
+  const raw = String((err as { message?: string })?.message ?? "")
+  const match = raw.match(/Error\(Contract,\s*#\d+\)\s*:\s*([A-Za-z]+)|([A-Z][a-zA-Z]+Error|[A-Z][a-zA-Z]+)/)
+  const code = match?.[1] ?? match?.[2] ?? "UNKNOWN"
+
+  if (code in CONTRACT_ERRORS) {
     return { code, ...CONTRACT_ERRORS[code] }
   }
 

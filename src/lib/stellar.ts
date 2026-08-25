@@ -6,31 +6,27 @@ import {
   TransactionBuilder,
   BASE_FEE,
   nativeToScVal,
-  StrKey,
   scValToNative,
   xdr,
 } from "@stellar/stellar-sdk"
 
 import { getContractAddress } from "@/lib/contracts.generated"
 import { createLogger } from "@/lib/logger"
+import { getOnChainTokenMeta } from "@/lib/token-metadata"
 
 const log = createLogger("stellar")
 
-const envNetwork = ((import.meta.env.VITE_NETWORK as string | undefined) || "testnet").toLowerCase()
+const envNetwork = (import.meta.env.VITE_NETWORK || "testnet").toLowerCase()
 const isMainnet = envNetwork === "mainnet" || envNetwork === "public"
 
-const defaultRpcUrl = isMainnet
-  ? "https://soroban-mainnet.stellar.org"
-  : "https://soroban-testnet.stellar.org"
-const defaultHorizonUrl = isMainnet
-  ? "https://horizon.stellar.org"
-  : "https://horizon-testnet.stellar.org"
+const defaultRpcUrl = isMainnet ? "https://soroban-mainnet.stellar.org" : "https://soroban-testnet.stellar.org"
+const defaultHorizonUrl = isMainnet ? "https://horizon.stellar.org" : "https://horizon-testnet.stellar.org"
 
 export const NETWORK = {
   id: isMainnet ? "mainnet" : "testnet",
   passphrase: isMainnet ? Networks.PUBLIC : Networks.TESTNET,
-  rpcUrl: (import.meta.env.VITE_RPC_URL as string | undefined) || defaultRpcUrl,
-  horizonUrl: (import.meta.env.VITE_HORIZON_URL as string | undefined) || defaultHorizonUrl,
+  rpcUrl: import.meta.env.VITE_RPC_URL || defaultRpcUrl,
+  horizonUrl: import.meta.env.VITE_HORIZON_URL || defaultHorizonUrl,
   networkName: isMainnet ? "public" : "testnet",
   displayName: isMainnet ? "Mainnet" : "Testnet",
 }
@@ -195,7 +191,7 @@ export async function simulateCall<T>(contractId: string, method: string, args: 
   const dummySource = {
     accountId: () => "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
     sequenceNumber: () => "0",
-    incrementSequenceNumber: () => { },
+    incrementSequenceNumber: () => {},
   }
 
   const contract = new Contract(contractId)
@@ -215,7 +211,7 @@ export async function simulateCall<T>(contractId: string, method: string, args: 
     throw new Error(`Simulation error: ${simError(result)}`)
   }
 
-  const retval = (result).result?.retval
+  const retval = result.result?.retval
   if (!retval) return undefined as T
   return scValToNative(retval) as T
 }
@@ -356,25 +352,16 @@ export async function submitCallWithHash<T = void>(
 
 // ── Address helpers ─────────────────────────────────────────────────────────
 
-export function isValidStellarContractAddress(address: string): boolean {
-  return StrKey.isValidContract(address.trim())
-}
-
-export function isValidStellarPublicKey(address: string): boolean {
-  return StrKey.isValidEd25519PublicKey(address.trim())
-}
-
-export function isValidStellarAddress(address: string): boolean {
-  const trimmed = address.trim()
-  return StrKey.isValidEd25519PublicKey(trimmed) || StrKey.isValidContract(trimmed)
-}
+// Defined in @/lib/stellar-address so they can be imported without pulling in the
+// env validation and RPC client this module sets up at import time.
+export { isValidStellarAddress, isValidStellarContractAddress, isValidStellarPublicKey } from "@/lib/stellar-address"
 
 // ── Cost estimation ───────────────────────────────────────────────────────────
 
 export interface LockCostEstimate {
-  networkFee: number  // in XLM
+  networkFee: number // in XLM
   resourceFee: number // in XLM (storage deposit + compute)
-  total: number       // in XLM
+  total: number // in XLM
 }
 
 export async function estimateLockCost(
@@ -387,7 +374,7 @@ export async function estimateLockCost(
   const dummySource = {
     accountId: () => "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF",
     sequenceNumber: () => "0",
-    incrementSequenceNumber: () => { },
+    incrementSequenceNumber: () => {},
   }
 
   const contract = new Contract(contractId)
@@ -416,19 +403,17 @@ export async function estimateLockCost(
 
 export async function getTokenBalance(tokenAddress: string, owner: string): Promise<number> {
   const raw = await simulateCall<bigint>(tokenAddress, "balance", [new Address(owner).toScVal()])
-  return Number(raw ?? 0n) / STELLAR_DECIMALS
+  const { decimals } = await getOnChainTokenMeta(tokenAddress)
+  return Number(raw ?? 0n) / 10 ** decimals
 }
 
-export async function getTokenAllowance(
-  tokenAddress: string,
-  owner: string,
-  spender: string,
-): Promise<number> {
+export async function getTokenAllowance(tokenAddress: string, owner: string, spender: string): Promise<number> {
   const raw = await simulateCall<bigint>(tokenAddress, "allowance", [
     new Address(owner).toScVal(),
     new Address(spender).toScVal(),
   ])
-  return Number(raw ?? 0n) / 1e7
+  const { decimals } = await getOnChainTokenMeta(tokenAddress)
+  return Number(raw ?? 0n) / 10 ** decimals
 }
 
 export async function submitTokenApproval(
