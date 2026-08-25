@@ -1,159 +1,168 @@
 export interface StructuredError {
-  code: string;
-  title: string;
-  message: string;
-  recovery: string | null;
-  link: { label: string; url: string } | null;
-  i18nKey: string;
+  code: string
+  title: string
+  message: string
+  recovery: string | null
+  link: { label: string; url: string } | null
+  i18nKey: string
 }
 
 // Map Soroban contract error codes → structured errors
-const CONTRACT_ERRORS: Record<string, Omit<StructuredError, 'code'>> = {
+const CONTRACT_ERRORS: Record<string, Omit<StructuredError, "code">> = {
   AmountMustBePositive: {
-    title: 'errors.amountMustBePositive.title',
-    message: 'errors.amountMustBePositive.message',
-    recovery: 'errors.amountMustBePositive.recovery',
+    title: "errors.amountMustBePositive.title",
+    message: "errors.amountMustBePositive.message",
+    recovery: "errors.amountMustBePositive.recovery",
     link: null,
-    i18nKey: 'errors.amountMustBePositive',
+    i18nKey: "errors.amountMustBePositive",
   },
   UnlockMustBeFuture: {
-    title: 'errors.unlockMustBeFuture.title',
-    message: 'errors.unlockMustBeFuture.message',
-    recovery: 'errors.unlockMustBeFuture.recovery',
+    title: "errors.unlockMustBeFuture.title",
+    message: "errors.unlockMustBeFuture.message",
+    recovery: "errors.unlockMustBeFuture.recovery",
     link: null,
-    i18nKey: 'errors.unlockMustBeFuture',
+    i18nKey: "errors.unlockMustBeFuture",
   },
   StillLocked: {
-    title: 'errors.stillLocked.title',
-    message: 'errors.stillLocked.message',
-    recovery: 'errors.stillLocked.recovery',
+    title: "errors.stillLocked.title",
+    message: "errors.stillLocked.message",
+    recovery: "errors.stillLocked.recovery",
     link: null,
-    i18nKey: 'errors.stillLocked',
+    i18nKey: "errors.stillLocked",
   },
   AlreadyWithdrawn: {
-    title: 'errors.alreadyWithdrawn.title',
-    message: 'errors.alreadyWithdrawn.message',
+    title: "errors.alreadyWithdrawn.title",
+    message: "errors.alreadyWithdrawn.message",
     recovery: null,
     link: null,
-    i18nKey: 'errors.alreadyWithdrawn',
+    i18nKey: "errors.alreadyWithdrawn",
   },
   NothingToRelease: {
-    title: 'errors.nothingToRelease.title',
-    message: 'errors.nothingToRelease.message',
-    recovery: 'errors.nothingToRelease.recovery',
+    title: "errors.nothingToRelease.title",
+    message: "errors.nothingToRelease.message",
+    recovery: "errors.nothingToRelease.recovery",
     link: null,
-    i18nKey: 'errors.nothingToRelease',
+    i18nKey: "errors.nothingToRelease",
   },
   CanOnlyExtend: {
-    title: 'errors.canOnlyExtend.title',
-    message: 'errors.canOnlyExtend.message',
-    recovery: 'errors.canOnlyExtend.recovery',
+    title: "errors.canOnlyExtend.title",
+    message: "errors.canOnlyExtend.message",
+    recovery: "errors.canOnlyExtend.recovery",
     link: null,
-    i18nKey: 'errors.canOnlyExtend',
+    i18nKey: "errors.canOnlyExtend",
   },
   LockDurationTooLong: {
-    title: 'errors.lockDurationTooLong.title',
-    message: 'errors.lockDurationTooLong.message',
-    recovery: 'errors.lockDurationTooLong.recovery',
+    title: "errors.lockDurationTooLong.title",
+    message: "errors.lockDurationTooLong.message",
+    recovery: "errors.lockDurationTooLong.recovery",
     link: null,
-    i18nKey: 'errors.lockDurationTooLong',
+    i18nKey: "errors.lockDurationTooLong",
   },
   VestingEndBeforeStart: {
-    title: 'errors.vestingEndBeforeStart.title',
-    message: 'errors.vestingEndBeforeStart.message',
-    recovery: 'errors.vestingEndBeforeStart.recovery',
+    title: "errors.vestingEndBeforeStart.title",
+    message: "errors.vestingEndBeforeStart.message",
+    recovery: "errors.vestingEndBeforeStart.recovery",
     link: null,
-    i18nKey: 'errors.vestingEndBeforeStart',
+    i18nKey: "errors.vestingEndBeforeStart",
   },
   TooFewBeneficiaries: {
-    title: 'errors.tooFewBeneficiaries.title',
-    message: 'errors.tooFewBeneficiaries.message',
-    recovery: 'errors.tooFewBeneficiaries.recovery',
+    title: "errors.tooFewBeneficiaries.title",
+    message: "errors.tooFewBeneficiaries.message",
+    recovery: "errors.tooFewBeneficiaries.recovery",
     link: null,
-    i18nKey: 'errors.tooFewBeneficiaries',
+    i18nKey: "errors.tooFewBeneficiaries",
   },
   TooManyBeneficiaries: {
-    title: 'errors.tooManyBeneficiaries.title',
-    message: 'errors.tooManyBeneficiaries.message',
-    recovery: 'errors.tooManyBeneficiaries.recovery',
+    title: "errors.tooManyBeneficiaries.title",
+    message: "errors.tooManyBeneficiaries.message",
+    recovery: "errors.tooManyBeneficiaries.recovery",
     link: null,
-    i18nKey: 'errors.tooManyBeneficiaries',
+    i18nKey: "errors.tooManyBeneficiaries",
   },
   SharesMustSum10000: {
-    title: 'errors.sharesMustSum10000.title',
-    message: 'errors.sharesMustSum10000.message',
-    recovery: 'errors.sharesMustSum10000.recovery',
+    title: "errors.sharesMustSum10000.title",
+    message: "errors.sharesMustSum10000.message",
+    recovery: "errors.sharesMustSum10000.recovery",
     link: null,
-    i18nKey: 'errors.sharesMustSum10000',
+    i18nKey: "errors.sharesMustSum10000",
   },
   RateLimitExceeded: {
-    title: 'errors.rateLimitExceeded.title',
-    message: 'errors.rateLimitExceeded.message',
-    recovery: 'errors.rateLimitExceeded.recovery',
+    title: "errors.rateLimitExceeded.title",
+    message: "errors.rateLimitExceeded.message",
+    recovery: "errors.rateLimitExceeded.recovery",
     link: null,
-    i18nKey: 'errors.rateLimitExceeded',
+    i18nKey: "errors.rateLimitExceeded",
   },
-};
+}
 
 // Map wallet/network errors
 function parseWalletError(err: unknown): StructuredError | null {
-  const msg = String((err as Error)?.message ?? '').toLowerCase();
+  const msg = String((err as Error)?.message ?? "").toLowerCase()
 
-  if (msg.includes('user rejected') || msg.includes('user denied')) {
+  if (msg.includes("user rejected") || msg.includes("user denied")) {
     return {
-      code: 'USER_REJECTED', i18nKey: 'errors.userRejected',
-      title: 'errors.userRejected.title', message: 'errors.userRejected.message',
-      recovery: 'errors.userRejected.recovery', link: null,
-    };
+      code: "USER_REJECTED",
+      i18nKey: "errors.userRejected",
+      title: "errors.userRejected.title",
+      message: "errors.userRejected.message",
+      recovery: "errors.userRejected.recovery",
+      link: null,
+    }
   }
-  if (msg.includes('insufficient balance') || msg.includes('underfunded')) {
+  if (msg.includes("insufficient balance") || msg.includes("underfunded")) {
     return {
-      code: 'INSUFFICIENT_BALANCE', i18nKey: 'errors.insufficientBalance',
-      title: 'errors.insufficientBalance.title', message: 'errors.insufficientBalance.message',
-      recovery: 'errors.insufficientBalance.recovery', link: null,
-    };
+      code: "INSUFFICIENT_BALANCE",
+      i18nKey: "errors.insufficientBalance",
+      title: "errors.insufficientBalance.title",
+      message: "errors.insufficientBalance.message",
+      recovery: "errors.insufficientBalance.recovery",
+      link: null,
+    }
   }
-  if (msg.includes('wrong network') || msg.includes('network mismatch')) {
+  if (msg.includes("wrong network") || msg.includes("network mismatch")) {
     return {
-      code: 'WRONG_NETWORK', i18nKey: 'errors.wrongNetwork',
-      title: 'errors.wrongNetwork.title', message: 'errors.wrongNetwork.message',
-      recovery: 'errors.wrongNetwork.recovery', link: null,
-    };
+      code: "WRONG_NETWORK",
+      i18nKey: "errors.wrongNetwork",
+      title: "errors.wrongNetwork.title",
+      message: "errors.wrongNetwork.message",
+      recovery: "errors.wrongNetwork.recovery",
+      link: null,
+    }
   }
-  if (msg.includes('timeout') || msg.includes('timed out')) {
+  if (msg.includes("timeout") || msg.includes("timed out")) {
     return {
-      code: 'TIMEOUT', i18nKey: 'errors.timeout',
-      title: 'errors.timeout.title', message: 'errors.timeout.message',
-      recovery: 'errors.timeout.recovery',
-      link: { label: 'Check on Stellar Expert', url: 'https://stellar.expert/explorer/testnet' },
-    };
+      code: "TIMEOUT",
+      i18nKey: "errors.timeout",
+      title: "errors.timeout.title",
+      message: "errors.timeout.message",
+      recovery: "errors.timeout.recovery",
+      link: { label: "Check on Stellar Expert", url: "https://stellar.expert/explorer/testnet" },
+    }
   }
-  return null;
+  return null
 }
 
 export function parseError(err: unknown): StructuredError {
   // Try wallet-level errors first
-  const walletErr = parseWalletError(err);
-  if (walletErr) return walletErr;
+  const walletErr = parseWalletError(err)
+  if (walletErr) return walletErr
 
   // Try to extract Soroban contract error code
-  const raw = String((err as { message?: string })?.message ?? '');
-  const match = raw.match(/Error\(Contract,\s*#(\d+)\)|([A-Z][a-zA-Z]+Error|[A-Z][a-zA-Z]+)/);
-  const code = match?.[2] ?? match?.[1] ?? 'UNKNOWN';
+  const raw = String((err as { message?: string })?.message ?? "")
+  const code = Object.keys(CONTRACT_ERRORS).find((key) => new RegExp(`\\b${key}\\b`).test(raw))
 
-  if (code in CONTRACT_ERRORS) {
-    return { code, ...CONTRACT_ERRORS[code] };
+  if (code) {
+    return { code, ...CONTRACT_ERRORS[code] }
   }
 
   // Generic fallback
   // IMPORTANT: do not return raw error text to the UI.
   return {
-    code: 'UNKNOWN',
-    i18nKey: 'errors.unknown',
-    title: 'errors.unknown.title',
-    message: 'errors.unknown.message',
-    recovery: 'errors.unknown.recovery',
+    code: "UNKNOWN",
+    i18nKey: "errors.unknown",
+    title: "errors.unknown.title",
+    message: "errors.unknown.message",
+    recovery: "errors.unknown.recovery",
     link: null,
-  };
-
+  }
 }
