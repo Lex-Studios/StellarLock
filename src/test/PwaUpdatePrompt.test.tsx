@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest"
-import { render, screen, fireEvent, waitFor } from "@testing-library/react"
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react"
 import { PwaUpdatePrompt } from "@/components/ui/PwaUpdatePrompt"
 
 describe("PwaUpdatePrompt", () => {
@@ -51,10 +51,10 @@ describe("PwaUpdatePrompt", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
 
     await waitFor(() => expect(registrationListeners.updatefound).toBeDefined())
-    registrationListeners.updatefound()
+    act(() => registrationListeners.updatefound())
 
     installingWorker.state = "installed"
-    listeners.statechange()
+    act(() => listeners.statechange())
 
     expect(await screen.findByRole("alert")).toBeInTheDocument()
     expect(screen.getByText(/a new version is available/i)).toBeInTheDocument()
