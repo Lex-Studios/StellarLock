@@ -10,14 +10,15 @@ import { Card } from "@/components/ui/Card"
 import { formatUsd } from "@/lib/utils"
 import { useAsync } from "@/hooks/useAsync"
 import { querySiteStats } from "@/lib/queryLocks"
+import { Skeleton } from "@/components/ui/Skeleton"
 
 export function Landing() {
   const { t } = useTranslation()
   // Fetch live stats from the indexer (falls back to zeroed shape if unavailable)
-  const { data: stats } = useAsync(() => querySiteStats(), [])
+  const { data: stats, loading: statsLoading, error: statsError } = useAsync(() => querySiteStats(), [])
 
-  const totalSecured = stats?.totalValueLocked ?? 0
-  const activeLocks = stats?.totalLocks ?? 0
+  const totalSecured = statsError ? null : (stats?.totalValueLocked ?? null)
+  const activeLocks = statsError ? null : (stats?.totalLocks ?? null)
 
   return (
     <div>
@@ -67,8 +68,16 @@ export function Landing() {
       {/* Stats strip */}
       <section className="border-y border-border bg-card/40">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-px px-4 sm:grid-cols-4">
-          <Stat label={t("landing.valueSecured")} value={formatUsd(totalSecured)} />
-          <Stat label={t("landing.activeLocks")} value={String(activeLocks)} />
+          <Stat
+            label={t("landing.valueSecured")}
+            value={totalSecured !== null ? formatUsd(totalSecured) : "—"}
+            loading={statsLoading}
+          />
+          <Stat
+            label={t("landing.activeLocks")}
+            value={activeLocks !== null ? String(activeLocks) : "—"}
+            loading={statsLoading}
+          />
           <Stat label={t("landing.supportedDexs")} value="2" hint={t("landing.dexHint")} />
           <Stat label={t("landing.network")} value={NETWORK.displayName} hint={t("common.stellar")} />
         </div>
@@ -146,10 +155,14 @@ export function Landing() {
   )
 }
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Stat({ label, value, hint, loading }: { label: string; value: string; hint?: string; loading?: boolean }) {
   return (
     <div className="bg-background px-4 py-8 text-center">
-      <p className="text-3xl font-bold tabular-nums text-primary">{value}</p>
+      {loading ? (
+        <Skeleton className="mx-auto h-9 w-28 mb-1" />
+      ) : (
+        <p className="text-3xl font-bold tabular-nums text-primary">{value}</p>
+      )}
       <p className="mt-1 text-sm font-medium">{label}</p>
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
