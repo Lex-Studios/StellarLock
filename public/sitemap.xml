@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!--
+    StellarLock sitemap — https://stellarlock.app
+    Lists the static public-facing routes. Dynamic explorer pages
+    (/explore/:token) are discovered by crawlers via outbound links on /explore.
+
+    Update lastmod when the corresponding page content changes meaningfully.
+  -->
+
+  <!-- Landing page -->
+  <url>
+    <loc>https://stellarlock.app/</loc>
+    <lastmod>2025-07-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Discover / Explorer index — lists all locked tokens -->
+  <url>
+    <loc>https://stellarlock.app/explore</loc>
+    <lastmod>2025-07-26</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+</urlset>

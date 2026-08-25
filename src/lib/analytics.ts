@@ -4,9 +4,12 @@ type EventName =
   | "wallet_disconnect"
   | "lock_create_token"
   | "lock_create_lp"
+  | "lock_create_split"
   | "lock_withdraw"
   | "lock_extend"
+  | "lock_transfer_beneficiary"
   | "explorer_search"
+  | "token_approve"
 
 type EventProps = Record<string, string | number | boolean>
 
@@ -24,6 +27,8 @@ export function initAnalytics(): void {
 
   const script = document.createElement("script")
   script.defer = true
+  script.crossOrigin = "anonymous"
+  script.integrity = import.meta.env.VITE_PLAUSIBLE_INTEGRITY || ""
   script.dataset.domain = domain
   script.dataset.api = `${getPlausibleApiHost()}/api/event`
   script.src = `${getPlausibleApiHost()}/js/script.js`

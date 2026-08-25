@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerabilities
+    url: ../SECURITY.md
+    about: Found a security issue? Please read our Security Policy before reporting.
+  - name: Contributing Guide
+    url: ../CONTRIBUTING.md
+    about: Learn how to contribute to StellarLock.

@@ -7,10 +7,24 @@ import zh from "./locales/zh.json"
 import ko from "./locales/ko.json"
 import tr from "./locales/tr.json"
 
-i18n
+export const SUPPORTED_LOCALES = ["en", "es", "zh", "ko", "tr"] as const
+
+// Languages that render right-to-left. Keep in sync with the resources below.
+const RTL_LANGUAGES = new Set(["he", "fa", "ur"])
+
+function applyDocumentDirection(lng: string | undefined) {
+  if (typeof document === "undefined") return
+  const base = (lng ?? "en").split("-")[0]
+  const root = document.documentElement
+  root.lang = base
+  root.dir = RTL_LANGUAGES.has(base) ? "rtl" : "ltr"
+}
+
+void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
+    supportedLngs: SUPPORTED_LOCALES,
     resources: {
       en: { translation: en },
       es: { translation: es },
@@ -28,5 +42,12 @@ i18n
       lookupQuerystring: "lng",
     },
   })
+  .then(() => {
+    // Apply direction for the language the detector resolved on first load,
+    // not just on subsequent switches.
+    applyDocumentDirection(i18n.language)
+  })
+
+i18n.on("languageChanged", applyDocumentDirection)
 
 export default i18n
