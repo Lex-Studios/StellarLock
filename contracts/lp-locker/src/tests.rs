@@ -5,7 +5,7 @@ use soroban_sdk::{
     token, Address, Env, IntoVal,
 };
 
-use crate::{ContractError, Dex, LockMetadata, LpLocker, LpLockerClient};
+use crate::{ContractError, Dex, LockMetadata, LpLocker, LpLockerClient, Vesting};
 
 // ── Test setup ────────────────────────────────────────────────────────────────
 
@@ -60,6 +60,7 @@ fn create_lp_lock_valid_inputs() {
         &500_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -89,6 +90,7 @@ fn create_lp_lock_rejects_zero_amount() {
         &0_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
     assert_eq!(result, Err(Ok(ContractError::AmountMustBePositive)));
@@ -111,6 +113,7 @@ fn create_lp_lock_rejects_past_unlock() {
         &100_i128,
         &beneficiary,
         &0_u64,
+        &None,
         &empty_metadata(&env),
     );
     assert_eq!(result, Err(Ok(ContractError::UnlockMustBeFuture)));
@@ -137,6 +140,7 @@ fn beneficiary_can_withdraw_after_unlock() {
         &500_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -165,6 +169,7 @@ fn withdraw_fails_before_unlock_at() {
         &100_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -191,6 +196,7 @@ fn withdraw_twice_is_rejected() {
         &100_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -222,6 +228,7 @@ fn creator_can_extend_lp_lock() {
         &100_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -252,6 +259,7 @@ fn extend_cannot_decrease_unlock_time() {
         &100_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -278,6 +286,7 @@ fn extend_after_withdrawal_fails() {
         &100_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -289,8 +298,6 @@ fn extend_after_withdrawal_fails() {
 }
 
 // ── LockNotFound (#489) ──────────────────────────────────────────────────────
-// load_lock() must return ContractError::LockNotFound instead of panicking with
-// a bare .expect() when the lock id does not exist.
 
 #[test]
 fn withdraw_on_missing_lock_returns_lock_not_found() {
@@ -354,6 +361,7 @@ fn transfer_beneficiary_and_new_beneficiary_can_withdraw() {
         &300_i128,
         &original_beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -388,6 +396,7 @@ fn transfer_beneficiary_updates_indexes() {
         &100_i128,
         &original_beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -427,6 +436,7 @@ fn get_locks_by_creator_returns_correct_locks() {
         &100_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
     let id2 = client.create_lock(
@@ -438,6 +448,7 @@ fn get_locks_by_creator_returns_correct_locks() {
         &200_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
     client.create_lock(
@@ -449,6 +460,7 @@ fn get_locks_by_creator_returns_correct_locks() {
         &300_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -488,6 +500,7 @@ fn get_locks_by_pool_share_works() {
         &200_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
     let id2 = client.create_lock(
@@ -499,6 +512,7 @@ fn get_locks_by_pool_share_works() {
         &300_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -539,6 +553,7 @@ fn different_pool_shares_have_isolated_indexes() {
         &100_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
     client.create_lock(
@@ -550,6 +565,7 @@ fn different_pool_shares_have_isolated_indexes() {
         &200_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -578,6 +594,7 @@ fn lp_tvl_increases_on_create_decreases_on_withdraw() {
         &400_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
     client.create_lock(
@@ -589,6 +606,7 @@ fn lp_tvl_increases_on_create_decreases_on_withdraw() {
         &600_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -627,6 +645,7 @@ fn lp_global_stats_counts_unique_pool_shares() {
         &100_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
     client.create_lock(
@@ -638,6 +657,7 @@ fn lp_global_stats_counts_unique_pool_shares() {
         &200_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -648,9 +668,6 @@ fn lp_global_stats_counts_unique_pool_shares() {
 
 // ── create_lock TVL overflow guard (#490) ────────────────────────────────────
 
-/// The TVL accumulator `current_tvl + amount` overflows i128 when the existing
-/// per-pool-share TVL is already near i128::MAX.  The contract must return
-/// `ContractError::AmountOverflow` instead of trapping.
 #[test]
 fn create_lock_returns_typed_error_on_tvl_overflow() {
     let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
@@ -660,7 +677,6 @@ fn create_lock_returns_typed_error_on_tvl_overflow() {
     let beneficiary = Address::generate(&env);
     mint(&env, &pool_share_id, &creator, 1_000);
 
-    // Seed the per-pool-share TVL so that adding any positive amount overflows i128.
     env.as_contract(&contract_id, || {
         env.storage().persistent().set(
             &crate::DataKey::TotalLocked(pool_share_id.clone()),
@@ -678,6 +694,7 @@ fn create_lock_returns_typed_error_on_tvl_overflow() {
         &100_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -688,8 +705,6 @@ fn create_lock_returns_typed_error_on_tvl_overflow() {
     );
 }
 
-/// Complement: a TVL addition that lands exactly on i128::MAX must succeed and
-/// persist the new TVL.
 #[test]
 fn create_lock_near_overflow_boundary_succeeds() {
     let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
@@ -716,6 +731,7 @@ fn create_lock_near_overflow_boundary_succeeds() {
         &100_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -744,6 +760,7 @@ fn three_accounts_full_lp_flow() {
         &1_000_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -789,16 +806,10 @@ fn propose_and_accept_admin_transfers_ownership() {
     let new_admin = Address::generate(&env);
     client.init(&admin);
 
-    // Step 1: current admin proposes new admin
     client.propose_admin(&new_admin);
-
-    // Admin has not changed yet
     assert_eq!(client.get_admin(), Some(admin.clone()));
 
-    // Step 2: new admin accepts
     client.accept_admin();
-
-    // Admin is now the new address
     assert_eq!(client.get_admin(), Some(new_admin));
 }
 
@@ -824,11 +835,9 @@ fn admin_transfer_is_idempotent_on_re_propose() {
     let candidate_b = Address::generate(&env);
     client.init(&admin);
 
-    // Propose A, then change mind and propose B before B accepts
     client.propose_admin(&candidate_a);
     client.propose_admin(&candidate_b);
 
-    // Accepting should transfer to B, not A
     client.accept_admin();
     assert_eq!(client.get_admin(), Some(candidate_b));
 }
@@ -836,14 +845,12 @@ fn admin_transfer_is_idempotent_on_re_propose() {
 #[test]
 fn propose_admin_requires_current_admin_auth() {
     let env = Env::default();
-    // Do NOT call mock_all_auths — test real auth enforcement
     let contract_id = env.register(LpLocker, ());
     let client = LpLockerClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
     let new_admin = Address::generate(&env);
 
-    // init with admin auth
     env.mock_auths(&[soroban_sdk::testutils::MockAuth {
         address: &admin,
         invoke: &soroban_sdk::testutils::MockAuthInvoke {
@@ -855,7 +862,6 @@ fn propose_admin_requires_current_admin_auth() {
     }]);
     client.init(&admin);
 
-    // propose_admin without admin's authorisation must panic
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let env2 = env.clone();
         let c2 = LpLockerClient::new(&env2, &contract_id);
@@ -891,6 +897,7 @@ fn create_lock_stores_metadata() {
         &500_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &metadata,
     );
 
@@ -920,6 +927,7 @@ fn create_lock_without_metadata_leaves_it_empty() {
         &500_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -928,13 +936,6 @@ fn create_lock_without_metadata_leaves_it_empty() {
 }
 
 // ── Multi-account: unauthorized rejection ─────────────────────────────────────
-//
-// These tests build the lock with `mock_all_auths` (as setup_env does), then
-// clear the mocked authorizations with `mock_auths(&[])` before invoking the
-// state-mutating call under test. With no authorization present for the
-// address the contract actually requires (`lock.beneficiary` or
-// `lock.creator`), an address that is neither the creator nor the beneficiary
-// can never satisfy `require_auth()`, so the call must panic.
 
 #[test]
 fn unauthorized_address_cannot_withdraw() {
@@ -956,12 +957,12 @@ fn unauthorized_address_cannot_withdraw() {
         &500_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
     advance_time(&env, 200);
 
-    // No address (in particular, not `unauthorized`) has authorized anything now.
     env.mock_auths(&[]);
     let _ = &unauthorized;
 
@@ -993,6 +994,7 @@ fn unauthorized_address_cannot_extend() {
         &500_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -1028,6 +1030,7 @@ fn unauthorized_address_cannot_transfer_beneficiary() {
         &500_i128,
         &beneficiary,
         &unlock_at,
+        &None,
         &empty_metadata(&env),
     );
 
@@ -1040,4 +1043,711 @@ fn unauthorized_address_cannot_transfer_beneficiary() {
         result.is_err(),
         "transfer_beneficiary by an unauthorized address must be rejected"
     );
+}
+
+// ── Vesting ───────────────────────────────────────────────────────────────────
+
+#[test]
+fn vesting_end_must_be_after_start() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let now = env.ledger().timestamp();
+    let bad_vesting = Vesting {
+        start: now + 1_000,
+        end: now + 500, // end before start — invalid
+        released: 0,
+    };
+
+    let result = client.try_create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &100_i128,
+        &beneficiary,
+        &(now + 2_000),
+        &Some(bad_vesting),
+        &empty_metadata(&env),
+    );
+    assert_eq!(result, Err(Ok(ContractError::VestingEndBeforeStart)));
+}
+
+#[test]
+fn partial_vested_withdrawal_does_not_mark_fully_withdrawn() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 5_000);
+
+    let now = env.ledger().timestamp();
+    let vesting = Vesting {
+        start: now,
+        end: now + 1_000,
+        released: 0,
+    };
+
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &beneficiary,
+        &(now + 1),
+        &Some(vesting),
+        &empty_metadata(&env),
+    );
+
+    // Advance to 50 % of the vesting window — only half should be releasable.
+    advance_time(&env, 500);
+    client.withdraw(&lock_id);
+
+    // Lock must NOT be marked fully withdrawn after a partial release.
+    assert!(!client.get_lock(&lock_id).unwrap().withdrawn);
+}
+
+#[test]
+fn full_vesting_marks_withdrawn() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 5_000);
+
+    let now = env.ledger().timestamp();
+    let vesting = Vesting {
+        start: now,
+        end: now + 1_000,
+        released: 0,
+    };
+
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &beneficiary,
+        &(now + 1),
+        &Some(vesting),
+        &empty_metadata(&env),
+    );
+
+    // Advance past the end of the vesting window — everything should be releasable.
+    advance_time(&env, 1_500);
+    client.withdraw(&lock_id);
+
+    assert!(client.get_lock(&lock_id).unwrap().withdrawn);
+}
+
+#[test]
+fn vesting_proportional_release_at_midpoint() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 10_000);
+
+    let now = env.ledger().timestamp();
+    let vesting_duration = 1_000_u64;
+    let vesting = Vesting {
+        start: now,
+        end: now + vesting_duration,
+        released: 0,
+    };
+
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &beneficiary,
+        &(now + 1),
+        &Some(vesting),
+        &empty_metadata(&env),
+    );
+
+    advance_time(&env, vesting_duration / 2);
+    client.withdraw(&lock_id);
+
+    let lock = client.get_lock(&lock_id).unwrap();
+    assert_eq!(
+        lock.vesting.released, 500_i128,
+        "expected 50 % released at midpoint"
+    );
+    assert!(
+        !lock.withdrawn,
+        "lock should not be fully withdrawn at midpoint"
+    );
+}
+
+#[test]
+fn vesting_nothing_to_release_before_start() {
+    // Vesting starts in the future. Even after unlock_at passes, nothing is
+    // releasable yet because the vesting clock hasn't started.
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 5_000);
+
+    let now = env.ledger().timestamp();
+    let vesting = Vesting {
+        start: now + 500, // vesting hasn't begun yet
+        end: now + 1_500,
+        released: 0,
+    };
+
+    let lock_id = client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &beneficiary,
+        &(now + 1), // unlock_at is before vesting start
+        &Some(vesting),
+        &empty_metadata(&env),
+    );
+
+    // Advance past unlock_at but before vesting start.
+    advance_time(&env, 100);
+    let result = client.try_withdraw(&lock_id);
+    assert_eq!(
+        result,
+        Err(Ok(ContractError::NothingToRelease)),
+        "should get NothingToRelease when vesting hasn't started"
+    );
+}
+
+#[test]
+fn split_lock_with_vesting_allocates_and_vests_correctly() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 10_000);
+
+    let now = env.ledger().timestamp();
+    let vesting = Vesting {
+        start: now,
+        end: now + 1_000,
+        released: 0,
+    };
+
+    let unlock_at = now + 1;
+    let group_id = client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &10_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 7_000_u64), (b2.clone(), 3_000_u64)],
+        &unlock_at,
+        &Some(vesting),
+    );
+
+    let group = client.get_split_group(&group_id).unwrap();
+    assert_eq!(group.lock_ids.len(), 2);
+
+    // Each sub-lock must carry the vesting schedule.
+    let lock0 = client.get_lock(&group_id).unwrap();
+    assert_eq!(lock0.amount, 7_000_i128);
+    assert!(!lock0.vesting.is_none());
+    assert_eq!(lock0.vesting.released, 0);
+
+    let lock1_id = group.lock_ids.get(1).unwrap();
+    let lock1 = client.get_lock(&lock1_id).unwrap();
+    assert_eq!(lock1.amount, 3_000_i128);
+    assert!(!lock1.vesting.is_none());
+
+    // Advance to midpoint — b1 should get 50 % of their 7 000 share.
+    advance_time(&env, 500);
+    client.withdraw(&group_id);
+
+    let lock0_after = client.get_lock(&group_id).unwrap();
+    assert_eq!(lock0_after.vesting.released, 3_500_i128);
+    assert!(!lock0_after.withdrawn);
+}
+
+#[test]
+fn split_lock_vesting_end_before_start_is_rejected() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 10_000);
+
+    let now = env.ledger().timestamp();
+    let bad_vesting = Vesting {
+        start: now + 1_000,
+        end: now + 100,
+        released: 0,
+    };
+
+    let result = client.try_create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &10_000_i128,
+        &soroban_sdk::vec![&env, (b1, 5_000_u64), (b2, 5_000_u64)],
+        &(now + 1),
+        &Some(bad_vesting),
+    );
+    assert_eq!(result, Err(Ok(ContractError::VestingEndBeforeStart)));
+}
+
+// ── create_split_lock: happy path ─────────────────────────────────────────────
+
+#[test]
+fn create_split_lock_two_beneficiaries_correct_amounts() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 10_000);
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    let group_id = client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &10_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 6_000_u64), (b2.clone(), 4_000_u64)],
+        &unlock_at,
+        &None,
+    );
+
+    let group = client.get_split_group(&group_id).expect("group exists");
+    assert_eq!(group.group_id, group_id);
+    assert_eq!(group.lock_ids.len(), 2);
+
+    let lock_a = client.get_lock(&group_id).expect("first sub-lock exists");
+    assert_eq!(lock_a.amount, 6_000_i128);
+    assert_eq!(lock_a.beneficiary, b1);
+    assert_eq!(lock_a.unlock_at, unlock_at);
+    assert!(!lock_a.withdrawn);
+
+    let lock_b = client.get_lock(&group.lock_ids.get(1).unwrap()).expect("second sub-lock");
+    assert_eq!(lock_b.amount, 4_000_i128);
+    assert_eq!(lock_b.beneficiary, b2);
+}
+
+#[test]
+fn create_split_lock_three_way_amounts() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    let b3 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 9_000);
+
+    let unlock_at = env.ledger().timestamp() + 200;
+    let group_id = client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &9_000_i128,
+        &soroban_sdk::vec![
+            &env,
+            (b1.clone(), 5_000_u64),
+            (b2.clone(), 3_000_u64),
+            (b3.clone(), 2_000_u64),
+        ],
+        &unlock_at,
+        &None,
+    );
+
+    let group = client.get_split_group(&group_id).unwrap();
+    assert_eq!(group.lock_ids.len(), 3);
+
+    let amounts: soroban_sdk::Vec<i128> = {
+        let mut v = soroban_sdk::vec![&env];
+        for lid in group.lock_ids.iter() {
+            v.push_back(client.get_lock(&lid).unwrap().amount);
+        }
+        v
+    };
+    assert_eq!(amounts.get(0).unwrap(), 4_500_i128); // 50 %
+    assert_eq!(amounts.get(1).unwrap(), 2_700_i128); // 30 %
+    assert_eq!(amounts.get(2).unwrap(), 1_800_i128); // 20 %
+}
+
+// ── create_split_lock: input validation ───────────────────────────────────────
+
+#[test]
+fn create_split_lock_rejects_zero_amount() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+
+    let result = client.try_create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &0_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &(env.ledger().timestamp() + 100),
+        &None,
+    );
+    assert_eq!(result, Err(Ok(ContractError::AmountMustBePositive)));
+}
+
+#[test]
+fn create_split_lock_rejects_past_unlock_at() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+
+    let result = client.try_create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &0_u64,
+        &None,
+    );
+    assert_eq!(result, Err(Ok(ContractError::UnlockMustBeFuture)));
+}
+
+#[test]
+fn create_split_lock_rejects_single_beneficiary() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let result = client.try_create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 10_000_u64)],
+        &(env.ledger().timestamp() + 100),
+        &None,
+    );
+    assert_eq!(result, Err(Ok(ContractError::TooFewBeneficiaries)));
+}
+
+#[test]
+fn create_split_lock_rejects_bps_not_10000() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let result = client.try_create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 4_000_u64), (b2.clone(), 4_000_u64)],
+        &(env.ledger().timestamp() + 100),
+        &None,
+    );
+    assert_eq!(result, Err(Ok(ContractError::SharesMustSum10000)));
+}
+
+// ── create_split_lock: index population ───────────────────────────────────────
+
+#[test]
+fn split_lock_sub_locks_appear_in_beneficiary_index() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 7_000_u64), (b2.clone(), 3_000_u64)],
+        &unlock_at,
+        &None,
+    );
+
+    assert_eq!(client.get_lock_count_by_beneficiary(&b1), 1);
+    assert_eq!(client.get_lock_count_by_beneficiary(&b2), 1);
+    assert_eq!(
+        client.get_locks_by_beneficiary(&b1, &0, &10).get(0).unwrap().amount,
+        700_i128
+    );
+}
+
+#[test]
+fn split_lock_sub_locks_in_creator_and_pool_share_indexes() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 2_000);
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &2_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &unlock_at,
+        &None,
+    );
+
+    assert_eq!(client.get_lock_count_by_creator(&creator), 2);
+    assert_eq!(client.get_lock_count_by_pool_share(&pool_share_id), 2);
+}
+
+#[test]
+fn get_split_groups_by_creator_returns_group() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let group_id = client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 6_000_u64), (b2.clone(), 4_000_u64)],
+        &(env.ledger().timestamp() + 100),
+        &None,
+    );
+
+    let groups = client.get_split_groups_by_creator(&creator, &0, &10);
+    assert_eq!(groups.len(), 1);
+    assert_eq!(groups.get(0).unwrap().group_id, group_id);
+}
+
+#[test]
+fn get_split_groups_by_creator_pagination_works() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 10_000);
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    for _ in 0..3_u32 {
+        client.create_split_lock(
+            &creator,
+            &pool_share_id,
+            &Dex::Soroswap,
+            &token_a,
+            &token_b,
+            &1_000_i128,
+            &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+            &unlock_at,
+            &None,
+        );
+    }
+
+    assert_eq!(client.get_split_groups_by_creator(&creator, &0, &10).len(), 3);
+    assert_eq!(client.get_split_groups_by_creator(&creator, &1, &1).len(), 1);
+    assert_eq!(client.get_split_groups_by_creator(&creator, &3, &10).len(), 0);
+}
+
+// ── create_split_lock: TVL and global stats ───────────────────────────────────
+
+#[test]
+fn split_lock_tvl_and_global_stats() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 5_000);
+
+    client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &4_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &(env.ledger().timestamp() + 100),
+        &None,
+    );
+
+    assert_eq!(client.get_total_locked(&pool_share_id), 4_000_i128);
+    let stats = client.get_global_stats();
+    assert_eq!(stats.total_lock_count, 2);
+    assert_eq!(stats.unique_pool_share_count, 1);
+}
+
+#[test]
+fn split_lock_tvl_adds_to_existing_regular_lock() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let beneficiary = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 10_000);
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    client.create_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &3_000_i128,
+        &beneficiary,
+        &unlock_at,
+        &None,
+        &empty_metadata(&env),
+    );
+    client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Aquarius,
+        &token_a,
+        &token_b,
+        &2_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &unlock_at,
+        &None,
+    );
+
+    assert_eq!(client.get_total_locked(&pool_share_id), 5_000_i128);
+    let stats = client.get_global_stats();
+    // 1 regular + 2 split sub-locks = 3
+    assert_eq!(stats.total_lock_count, 3);
+}
+
+// ── create_split_lock: withdrawal behaviour ───────────────────────────────────
+
+#[test]
+fn split_lock_beneficiaries_withdraw_independently() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let unlock_at = env.ledger().timestamp() + 100;
+    let group_id = client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 6_000_u64), (b2.clone(), 4_000_u64)],
+        &unlock_at,
+        &None,
+    );
+
+    let group = client.get_split_group(&group_id).unwrap();
+    let id_b2 = group.lock_ids.get(1).unwrap();
+
+    advance_time(&env, 200);
+
+    client.withdraw(&group_id);
+    assert!(client.get_lock(&group_id).unwrap().withdrawn);
+    assert!(!client.get_lock(&id_b2).unwrap().withdrawn);
+
+    client.withdraw(&id_b2);
+    assert!(client.get_lock(&id_b2).unwrap().withdrawn);
+}
+
+#[test]
+fn split_lock_sub_lock_still_locked_before_unlock() {
+    let (env, contract_id, pool_share_id, token_a, token_b) = setup_env();
+    let client = LpLockerClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &pool_share_id, &creator, 1_000);
+
+    let group_id = client.create_split_lock(
+        &creator,
+        &pool_share_id,
+        &Dex::Soroswap,
+        &token_a,
+        &token_b,
+        &1_000_i128,
+        &soroban_sdk::vec![&env, (b1.clone(), 5_000_u64), (b2.clone(), 5_000_u64)],
+        &(env.ledger().timestamp() + 1_000),
+        &None,
+    );
+
+    let result = client.try_withdraw(&group_id);
+    assert_eq!(result, Err(Ok(ContractError::StillLocked)));
 }
