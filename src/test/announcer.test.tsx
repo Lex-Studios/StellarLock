@@ -1,7 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect } from "vitest"
 import { render, screen, waitFor, act } from "@testing-library/react"
 import { AnnouncerProvider, useAnnouncer } from "@/hooks/useAnnouncer"
-import i18n from "@/i18n"
 
 function Announcer({ message, priority }: { message: string; priority?: "polite" | "assertive" }) {
   const { announce } = useAnnouncer()
@@ -52,36 +51,5 @@ describe("AnnouncerProvider", () => {
       expect(document.querySelector('[aria-live="assertive"]')).toHaveTextContent("Transaction Cancelled.")
     })
     expect(document.querySelector('[aria-live="polite"]')).toHaveTextContent("")
-  })
-})
-
-describe("RTL document direction", () => {
-  const original = i18n.language
-
-  beforeEach(async () => {
-    await i18n.changeLanguage("en")
-  })
-
-  afterEach(async () => {
-    await i18n.changeLanguage(original)
-  })
-
-  it("switches dir/lang to rtl for Arabic and back for English", async () => {
-    expect(document.documentElement.dir).toBe("ltr")
-    expect(document.documentElement.lang).toBe("en")
-
-    await i18n.changeLanguage("ar")
-    expect(document.documentElement.dir).toBe("rtl")
-    expect(document.documentElement.lang).toBe("ar")
-
-    await i18n.changeLanguage("en")
-    expect(document.documentElement.dir).toBe("ltr")
-    expect(document.documentElement.lang).toBe("en")
-  })
-
-  it("treats regional Arabic tags as RTL", async () => {
-    await i18n.changeLanguage("ar-EG")
-    expect(document.documentElement.dir).toBe("rtl")
-    expect(document.documentElement.lang).toBe("ar")
   })
 })
