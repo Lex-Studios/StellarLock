@@ -1,9 +1,9 @@
-import Database from 'better-sqlite3'
+import Database from "better-sqlite3"
 
 // Minimal SQLite DB backend for persistent index state.
 // File-based DB so the indexer can resume after restarts.
 
-const DB_PATH = process.env.LOCK_INDEX_DB_PATH || 'lock-index.sqlite'
+const DB_PATH = process.env.LOCK_INDEX_DB_PATH || "lock-index.sqlite"
 
 export const db = new Database(DB_PATH, {
   // Keep latency low; WAL improves concurrent read/write.
@@ -34,7 +34,8 @@ export function initDb() {
       status TEXT NOT NULL,
       created_at INTEGER NOT NULL,
       extended_count INTEGER DEFAULT 0,
-      withdrawn INTEGER DEFAULT 0
+      withdrawn INTEGER DEFAULT 0,
+      released TEXT NOT NULL DEFAULT '0'
     );
 
     CREATE INDEX IF NOT EXISTS idx_locks_token ON locks(token);
@@ -68,14 +69,30 @@ export function initDb() {
     CREATE INDEX IF NOT EXISTS idx_subs_pending ON notification_subscriptions(reminded_0d)
       WHERE reminded_0d = 0;
   `)
+
+  // `released` was added after `locks` first shipped — back-fill it for
+  // databases created before this column existed. Every already-indexed
+  // lock defaulted to being marked fully withdrawn as soon as any withdrawal
+  // was seen, so 0 is a safe starting point (the next withdrawal event, if
+  // any, re-derives the correct cumulative total).
+  const lockColumns = db.prepare(`PRAGMA table_info(locks)`).all() as { name: string }[]
+  if (!lockColumns.some((c) => c.name === "released")) {
+    db.exec(`ALTER TABLE locks ADD COLUMN released TEXT NOT NULL DEFAULT '0'`)
+  }
 }
 
 export function getMeta(key: string): string | null {
-  const row = db.prepare('SELECT value FROM index_meta WHERE key = ?').get(key) as { value: string } | undefined
+  const row = db.prepare("SELECT value FROM index_meta WHERE key = ?").get(key) as { value: string } | undefined
   return row?.value ?? null
 }
 
 export function setMeta(key: string, value: string) {
-  db.prepare('INSERT INTO index_meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(key, value)
+  db.prepare("INSERT INTO index_meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(
+    key,
+    value,
+  )
 }
 
+export function deleteMeta(key: string) {
+  db.prepare("DELETE FROM index_meta WHERE key = ?").run(key)
+}
