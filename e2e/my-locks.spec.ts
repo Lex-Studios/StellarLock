@@ -14,24 +14,17 @@ test.describe('My Locks Page', () => {
     const myLocks = new MyLocksPage(page)
     await myLocks.goto()
     // Even though not connected, should show loading UI elements
-    await page.waitForTimeout(100)
+    await page.locator('body').waitFor()
     const hasContent = await page.locator('body').isVisible()
     expect(hasContent).toBeTruthy()
   })
 
   test('Tab switching works', async ({ page }) => {
     const myLocks = new MyLocksPage(page)
-    // This test may not fully work without wallet connection
-    // but tests the UI interaction
-    try {
-      await myLocks.goto()
-      await myLocks.clickTab('created')
-      await page.waitForTimeout(100)
-      const url = page.url()
-      expect(url).toContain('/app/locks')
-    } catch {
-      // Expected if not connected
-    }
+    await myLocks.goto()
+    await myLocks.clickTab('created')
+    const url = page.url()
+    expect(url).toContain('/app/locks')
   })
 
   test('Search field is functional', async ({ page }) => {

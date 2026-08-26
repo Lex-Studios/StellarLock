@@ -2,7 +2,7 @@
 
 > **Status: Implemented.** The cron worker (`indexer/notifier.ts`), subscription API (`api/notifications/`), database schema (`notification_subscriptions` table in `indexer/db.ts`), and email UI (`src/components/locks/NotificationSettings.tsx`) are all shipped. Email delivery uses [Resend](https://resend.com). Set `RESEND_API_KEY`, `EMAIL_FROM`, and `WEBHOOK_SECRET` environment variables before deploying.
 
-Backend service for monitoring lock timestamps and dispatching unlock notifications via email, webhook, and browser push when locks approach their unlock dates.
+Backend service for monitoring lock timestamps and dispatching unlock notifications via email and webhook when locks approach their unlock dates.
 
 ## Components
 
@@ -20,9 +20,8 @@ Runs on a cron schedule (every hour). For each registered notification subscript
 │  (every 1h)  │     │  (simulate)   │     │  get_lock(id)    │
 └──────┬───────┘     └───────────────┘     └──────────────────┘
        │
-       ├──▶ Email (SendGrid / Resend)
-       ├──▶ Webhook (POST to user URL)
-       └──▶ Web Push (via push subscription)
+       ├──▶ Email (Resend)
+       └──▶ Webhook (POST to user URL)
 ```
 
 ### 2. Subscription API
@@ -39,34 +38,34 @@ REST endpoints for the frontend to register/unregister notification preferences.
 
 ```json
 {
-  "lockId": "1042",
+  "lockId": "token:1042",
   "address": "G...",
-  "channels": {
-    "email": "user@example.com",
-    "webhook": "https://discord.com/api/webhooks/...",
-    "webPush": { "endpoint": "...", "keys": { "p256dh": "...", "auth": "..." } }
-  }
+  "email": "user@example.com",
+  "webhookUrl": "https://discord.com/api/webhooks/..."
 }
 ```
+
+At least one of `email` or `webhookUrl` must be provided.
 
 ### 3. Database Schema
 
 ```sql
-CREATE TABLE notification_subscriptions (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lock_id       TEXT NOT NULL,
-  address       TEXT NOT NULL,
-  email         TEXT,
-  webhook_url   TEXT,
-  push_sub      JSONB,
-  reminded_7d   BOOLEAN DEFAULT FALSE,
-  reminded_1d   BOOLEAN DEFAULT FALSE,
-  reminded_0d   BOOLEAN DEFAULT FALSE,
-  created_at    TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS notification_subscriptions (
+  id          TEXT PRIMARY KEY,
+  lock_id     TEXT NOT NULL,
+  address     TEXT NOT NULL,
+  email       TEXT,
+  webhook_url TEXT,
+  reminded_7d INTEGER DEFAULT 0,
+  reminded_1d INTEGER DEFAULT 0,
+  reminded_0d INTEGER DEFAULT 0,
+  created_at  INTEGER DEFAULT (unixepoch())
 );
 
-CREATE INDEX idx_subs_lock ON notification_subscriptions(lock_id);
-CREATE INDEX idx_subs_reminded ON notification_subscriptions(reminded_0d) WHERE NOT reminded_0d;
+CREATE INDEX IF NOT EXISTS idx_subs_lock    ON notification_subscriptions(lock_id);
+CREATE INDEX IF NOT EXISTS idx_subs_address ON notification_subscriptions(address);
+CREATE INDEX IF NOT EXISTS idx_subs_pending ON notification_subscriptions(reminded_0d)
+  WHERE reminded_0d = 0;
 ```
 
 ## Webhook Payload Format
@@ -84,14 +83,6 @@ CREATE INDEX idx_subs_reminded ON notification_subscriptions(reminded_0d) WHERE 
 ```
 
 Events: `unlock_reminder` (7d, 1d before) and `unlocked` (at unlock time).
-
-## Tech Stack Recommendation
-
-- **Runtime**: Node.js or Deno
-- **Database**: PostgreSQL (Supabase or Neon for managed)
-- **Email**: Resend or SendGrid
-- **Web Push**: `web-push` npm package
-- **Deployment**: Fly.io, Railway, or Cloudflare Workers + D1
 
 ## Security Considerations
 

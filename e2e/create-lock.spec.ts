@@ -19,7 +19,7 @@ test.describe('Create Lock Page', () => {
     const createLock = new CreateLockPage(page)
     await createLock.goto()
     await createLock.switchToLpTab()
-    await expect(page).toContainText(/LP|pool/i)
+    await expect(page.locator('body')).toContainText(/LP|pool/i)
   })
 
   test('Can switch back to Token lock tab', async ({ page }) => {
