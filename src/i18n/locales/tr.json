@@ -58,6 +58,8 @@
   "createLock": {
     "title": "Kilit oluştur",
     "subtitle": "Tokenleri veya LP pozisyonlarını değiştirilemez bir Soroban sözleşmesinde kilitleyin.",
+    "modeSimple": "Basit",
+    "modeWizard": "Sihirbaz",
     "tabToken": "Token Kilidi",
     "tabLp": "LP Kilidi"
   },

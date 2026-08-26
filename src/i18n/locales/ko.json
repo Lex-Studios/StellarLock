@@ -58,6 +58,8 @@
   "createLock": {
     "title": "잠금 생성",
     "subtitle": "불변의 Soroban 컨트랙트에 토큰 또는 LP 포지션을 잠급니다.",
+    "modeSimple": "단순",
+    "modeWizard": "마법사",
     "tabToken": "토큰 잠금",
     "tabLp": "LP 잠금"
   },

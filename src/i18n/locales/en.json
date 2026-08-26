@@ -58,6 +58,8 @@
   "createLock": {
     "title": "Create a lock",
     "subtitle": "Lock tokens or LP positions in an immutable Soroban contract.",
+    "modeSimple": "Simple",
+    "modeWizard": "Wizard",
     "tabToken": "Token Lock",
     "tabLp": "LP Lock"
   },

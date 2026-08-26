@@ -58,6 +58,8 @@
   "createLock": {
     "title": "创建锁定",
     "subtitle": "在不可变的 Soroban 合约中锁定代币或 LP 仓位。",
+    "modeSimple": "简单",
+    "modeWizard": "向导",
     "tabToken": "代币锁定",
     "tabLp": "LP 锁定"
   },
