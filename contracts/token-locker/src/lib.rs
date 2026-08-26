@@ -702,6 +702,25 @@ impl TokenLocker {
             );
             push_index(&env, DataKey::ByToken(token.clone()), lock_id, false);
             lock_ids.push_back(lock_id);
+
+            // Each split-group child is a fully independent Lock (its own id,
+            // later withdrawable — and re-extendable, re-transferable — via
+            // the standard entry points), so it gets its own `lock_created`
+            // event with its own beneficiary/amount, exactly like a regular
+            // lock. This lets indexers track every child individually instead
+            // of collapsing the group into a single row keyed by group id.
+            env.events().publish(
+                (
+                    Symbol::new(&env, "lock_created"),
+                    lock_id,
+                    creator.clone(),
+                    token.clone(),
+                    share_amount,
+                    beneficiary.clone(),
+                    unlock_at,
+                ),
+                (),
+            );
         }
 
         let group = SplitGroup { group_id, lock_ids };
@@ -727,6 +746,8 @@ impl TokenLocker {
             RATE_LIMIT_TTL_LEDGERS,
         );
 
+        // Group-level summary only — each child's own state was already
+        // published above via its individual `lock_created` event.
         env.events().publish(
             (
                 Symbol::new(&env, "split_lock_created"),

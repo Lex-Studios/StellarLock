@@ -112,8 +112,17 @@ const lpBeneficiaryTransferred = makeEvent(
 
 beforeAll(async () => {
   process.env.LOCK_INDEX_DB_PATH = join(tmpDir, "index.sqlite")
+  process.env.TOKEN_LOCKER_CONTRACT = "CTOKENLOCKERTESTCONTRACTIDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+  process.env.LP_LOCKER_CONTRACT = "CLPLOCKERTESTCONTRACTIDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
   indexer = await import("./index")
 })
+
+/** A fresh module instance backed by its own throwaway database file, so a test can exercise state (env vars, persisted cursor/ledger) without disturbing the other tests in this file. */
+async function freshIndexer(name: string): Promise<Indexer> {
+  vi.resetModules()
+  process.env.LOCK_INDEX_DB_PATH = join(tmpDir, `${name}.sqlite`)
+  return import("./index")
+}
 
 afterAll(() => {
   rmSync(tmpDir, { recursive: true, force: true })
@@ -242,5 +251,172 @@ describe("lock indexer", () => {
     } finally {
       poller.stop()
     }
+  })
+
+  it("refuses to poll with no contract filter when both contract ids are unset (#629)", async () => {
+    const prevToken = process.env.TOKEN_LOCKER_CONTRACT
+    const prevLp = process.env.LP_LOCKER_CONTRACT
+    delete process.env.TOKEN_LOCKER_CONTRACT
+    delete process.env.LP_LOCKER_CONTRACT
+    try {
+      const unfiltered = await freshIndexer("unfiltered-contract-ids")
+      const server = new FakeRpcServer([{ latestLedger: 1, events: [] }])
+      await expect(unfiltered.pollOnce(server)).rejects.toThrow(/TOKEN_LOCKER_CONTRACT/)
+      // The fatal check fires before any RPC call is made.
+      expect(server.requests).toHaveLength(0)
+    } finally {
+      process.env.TOKEN_LOCKER_CONTRACT = prevToken
+      process.env.LP_LOCKER_CONTRACT = prevLp
+    }
+  })
+
+  it("clears a stale cursor and recovers via ledger-based resumption on the next poll (#632)", async () => {
+    const fresh = await freshIndexer("stale-cursor")
+
+    // Seed a persisted cursor and last-indexed ledger.
+    await fresh.pollOnce(new FakeRpcServer([{ latestLedger: 500, cursor: "cursor-seed", events: [] }]))
+    expect(fresh.getLastIndexed()).toBe(500)
+
+    // The stored cursor has since aged out of the RPC node's retention window.
+    class StaleCursorServer extends FakeRpcServer {
+      getEvents(request: unknown) {
+        this.requests.push(request)
+        return Promise.reject(new Error("start is before oldest ledger available for this cursor"))
+      }
+    }
+    const failing = new StaleCursorServer([])
+    const processed = await fresh.pollOnce(failing)
+    expect(processed).toBe(0)
+    expect(failing.requests[0]).toMatchObject({ cursor: "cursor-seed" })
+    // The last-indexed ledger survives the failed poll — recovery resumes
+    // from there, not from scratch.
+    expect(fresh.getLastIndexed()).toBe(500)
+
+    // The *next* poll automatically recovers instead of retrying the same
+    // dead cursor: no persisted cursor left, so it falls back to the
+    // ledger-based resumption path.
+    const recovered = new FakeRpcServer([{ latestLedger: 501, events: [] }])
+    await fresh.pollOnce(recovered)
+    expect(recovered.requests[0]).toMatchObject({ startLedger: 501 })
+  })
+
+  it("does not mark a vesting lock fully withdrawn until cumulative releases reach its full amount (#631)", async () => {
+    const fresh = await freshIndexer("partial-vesting")
+
+    const vestBeneficiary = Keypair.random().publicKey()
+    const vestToken = Keypair.random().publicKey()
+    const vestUnlockAt = now + 86_400
+
+    const created = makeEvent("vest-created", 401, [
+      sym("lock_created"),
+      u64(42n),
+      addr(creator),
+      addr(vestToken),
+      i128(1_000n),
+      addr(vestBeneficiary),
+      u64(BigInt(vestUnlockAt)),
+    ])
+    // Two partial claims from the same vesting schedule, each carrying only
+    // the amount released in that particular withdrawal.
+    const firstClaim = makeEvent("vest-claim-1", 410, [
+      sym("lock_withdrawn"),
+      u64(42n),
+      addr(vestBeneficiary),
+      addr(vestToken),
+      i128(400n),
+    ])
+    const secondClaim = makeEvent("vest-claim-2", 420, [
+      sym("lock_withdrawn"),
+      u64(42n),
+      addr(vestBeneficiary),
+      addr(vestToken),
+      i128(600n),
+    ])
+
+    await fresh.pollOnce(new FakeRpcServer([{ latestLedger: 401, events: [created] }]))
+    await fresh.pollOnce(new FakeRpcServer([{ latestLedger: 410, events: [firstClaim] }]))
+
+    let [lock] = fresh.getLocksForToken(vestToken)
+    expect(lock.status).toBe("locked")
+    expect(lock.withdrawn).toBe(false)
+    expect(lock.released).toBe(400n)
+
+    await fresh.pollOnce(new FakeRpcServer([{ latestLedger: 420, events: [secondClaim] }]))
+    ;[lock] = fresh.getLocksForToken(vestToken)
+    expect(lock.status).toBe("withdrawn")
+    expect(lock.withdrawn).toBe(true)
+    expect(lock.released).toBe(1_000n)
+  })
+
+  it("indexes each split-lock child individually, so one beneficiary's withdrawal only updates their own row (#630)", async () => {
+    const fresh = await freshIndexer("split-lock-children")
+
+    const splitToken = Keypair.random().publicKey()
+    const child0Beneficiary = Keypair.random().publicKey()
+    const child1Beneficiary = Keypair.random().publicKey()
+    const splitUnlockAt = now + 86_400
+
+    // Mirrors what create_split_lock now emits: one `lock_created` per child
+    // (the first child's id doubles as the group id), then the group-level
+    // `split_lock_created` summary last.
+    const child0Created = makeEvent("split-child-0", 301, [
+      sym("lock_created"),
+      u64(10n),
+      addr(creator),
+      addr(splitToken),
+      i128(700n),
+      addr(child0Beneficiary),
+      u64(BigInt(splitUnlockAt)),
+    ])
+    const child1Created = makeEvent("split-child-1", 301, [
+      sym("lock_created"),
+      u64(11n),
+      addr(creator),
+      addr(splitToken),
+      i128(300n),
+      addr(child1Beneficiary),
+      u64(BigInt(splitUnlockAt)),
+    ])
+    const groupSummary = makeEvent("split-summary", 301, [
+      sym("split_lock_created"),
+      u64(10n),
+      addr(creator),
+      addr(splitToken),
+      i128(1_000n),
+      u64(BigInt(splitUnlockAt)),
+    ])
+
+    await fresh.pollOnce(
+      new FakeRpcServer([{ latestLedger: 301, events: [child0Created, child1Created, groupSummary] }]),
+    )
+
+    const afterCreate = fresh.getLocksForToken(splitToken)
+    expect(afterCreate).toHaveLength(2)
+    // The group summary (processed last, and sharing child 0's id) must not
+    // have clobbered child 0's own beneficiary/amount with the group's.
+    expect(afterCreate.find((l) => l.id === "token:10")).toMatchObject({
+      beneficiary: child0Beneficiary,
+      amount: 700n,
+      status: "locked",
+    })
+    expect(afterCreate.find((l) => l.id === "token:11")).toMatchObject({
+      beneficiary: child1Beneficiary,
+      amount: 300n,
+      status: "locked",
+    })
+
+    // Only the second beneficiary withdraws their share.
+    const child1Withdrawn = makeEvent("split-child-1-withdrawn", 310, [
+      sym("lock_withdrawn"),
+      u64(11n),
+      addr(child1Beneficiary),
+      addr(splitToken),
+      i128(300n),
+    ])
+    await fresh.pollOnce(new FakeRpcServer([{ latestLedger: 310, events: [child1Withdrawn] }]))
+
+    const afterWithdraw = fresh.getLocksForToken(splitToken)
+    expect(afterWithdraw.find((l) => l.id === "token:10")?.status).toBe("locked")
+    expect(afterWithdraw.find((l) => l.id === "token:11")?.status).toBe("withdrawn")
   })
 })

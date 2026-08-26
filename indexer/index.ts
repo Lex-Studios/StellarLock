@@ -1,7 +1,7 @@
 import { pathToFileURL } from "node:url"
 import { Server } from "@stellar/stellar-sdk/rpc"
 import { scValToNative, xdr } from "@stellar/stellar-sdk"
-import { initDb, db, getMeta, setMeta } from "./db"
+import { initDb, db, getMeta, setMeta, deleteMeta } from "./db"
 
 export interface IndexedLock {
   id: string
@@ -14,6 +14,8 @@ export interface IndexedLock {
   dex?: string | null
   pool_share?: string | null
   amount: bigint
+  /** Cumulative amount released across all withdrawals so far (== amount once fully withdrawn). */
+  released: bigint
   unlockAt: number
   status: "locked" | "withdrawn"
   createdAt: number
@@ -57,6 +59,7 @@ interface LockRow {
   dex: string | null
   pool_share: string | null
   amount: string
+  released: string
   unlock_at: number
   status: string
   created_at: number
@@ -78,6 +81,10 @@ function buildStatements() {
         unlock_at = excluded.unlock_at
     `),
     markWithdrawn: db.prepare(`UPDATE locks SET status = 'withdrawn', withdrawn = 1 WHERE id = ?`),
+    getAmountAndReleased: db.prepare(`SELECT amount, released FROM locks WHERE id = ?`),
+    recordRelease: db.prepare(`
+      UPDATE locks SET released = @released, status = @status, withdrawn = @withdrawn WHERE id = @id
+    `),
     extendUnlock: db.prepare(`UPDATE locks SET unlock_at = ?, extended_count = extended_count + 1 WHERE id = ?`),
     setBeneficiary: db.prepare(`UPDATE locks SET beneficiary = ? WHERE id = ?`),
     insertEvent: db.prepare(
@@ -106,6 +113,7 @@ function rowToLock(row: LockRow): IndexedLock {
     dex: row.dex,
     pool_share: row.pool_share,
     amount: BigInt(row.amount),
+    released: BigInt(row.released),
     unlockAt: row.unlock_at,
     status: row.status as "locked" | "withdrawn",
     createdAt: row.created_at,
@@ -126,6 +134,28 @@ export interface ContractEvent {
   timestamp?: number
   topics: unknown[]
   data: unknown
+}
+
+/**
+ * Apply one `lock_withdrawn` event's releasable amount to a lock's
+ * cumulative `released` total, marking it fully withdrawn only once that
+ * total reaches the lock's full amount. A lock with a linear vesting
+ * schedule can emit several `lock_withdrawn` events — one per partial claim
+ * — each carrying only the amount released in that particular withdrawal,
+ * not the lock's total, so a single such event is never enough on its own
+ * to tell whether the lock is now fully withdrawn.
+ */
+function applyRelease(s: ReturnType<typeof buildStatements>, lockId: string, releasable: bigint) {
+  const row = s.getAmountAndReleased.get(lockId) as { amount: string; released: string } | undefined
+  if (!row) return // withdrawal for a lock we never indexed a creation event for
+  const released = BigInt(row.released) + releasable
+  const fullyWithdrawn = released >= BigInt(row.amount)
+  s.recordRelease.run({
+    id: lockId,
+    released: released.toString(),
+    status: fullyWithdrawn ? "withdrawn" : "locked",
+    withdrawn: fullyWithdrawn ? 1 : 0,
+  })
 }
 
 /**
@@ -160,31 +190,24 @@ export function processEvent(event: ContractEvent): void {
         })
         break
       }
-      // The contract emits a single event for the whole split group (child
-      // locks emit nothing individually), so the group is indexed as one lock
-      // under its group id with the creator standing in as beneficiary.
+      // Each split-group child now publishes its own `lock_created` event
+      // (own id, beneficiary, amount) handled by the case above, including
+      // the first child, whose id equals the group id. This event is only a
+      // group-level summary — it must NOT upsert a lock row, since that
+      // would clobber the correct per-child row (from the case above) with
+      // the group's aggregate total and the creator standing in as
+      // beneficiary.
       case "split_lock_created": {
-        const [, groupId, creator, token, totalAmount, unlockAt] = event.topics
+        const [, groupId] = event.topics
         const lockId = `token:${String(groupId)}`
-        if (!s.insertEvent.run(event.id, event.ledger, name, lockId).changes) return
-        s.upsertLock.run({
-          id: lockId,
-          kind: "token",
-          creator: String(creator),
-          beneficiary: String(creator),
-          token: String(token),
-          pool_share: null,
-          amount: String(totalAmount),
-          unlock_at: Number(unlockAt),
-          created_at: createdAt,
-        })
+        s.insertEvent.run(event.id, event.ledger, name, lockId)
         break
       }
       case "lock_withdrawn": {
-        const [, id] = event.topics
+        const [, id, , , releasable] = event.topics
         const lockId = `token:${String(id)}`
         if (!s.insertEvent.run(event.id, event.ledger, name, lockId).changes) return
-        s.markWithdrawn.run(lockId)
+        applyRelease(s, lockId, BigInt(releasable as bigint))
         break
       }
       case "lock_extended": {
@@ -366,7 +389,12 @@ export async function pollOnce(server: EventSource): Promise<number> {
   ensureDb()
 
   const contractIds = [TOKEN_LOCKER_ID, LP_LOCKER_ID].filter(Boolean)
-  const filters = contractIds.length ? [{ type: "contract" as const, contractIds }] : []
+  if (contractIds.length === 0) {
+    throw new Error(
+      "[indexer] fatal: both TOKEN_LOCKER_CONTRACT and LP_LOCKER_CONTRACT are unset — refusing to poll with no contract filter (this would silently index every contract's events)",
+    )
+  }
+  const filters = [{ type: "contract" as const, contractIds }]
 
   const cursor = getMeta(META_CURSOR)
   let request: Parameters<EventSource["getEvents"]>[0]
@@ -378,7 +406,23 @@ export async function pollOnce(server: EventSource): Promise<number> {
     request = { startLedger, filters, limit: EVENTS_PAGE_LIMIT }
   }
 
-  const resp = await server.getEvents(request)
+  let resp: Awaited<ReturnType<EventSource["getEvents"]>>
+  try {
+    resp = await server.getEvents(request)
+  } catch (err) {
+    // A stored cursor can age out of the RPC node's retention window (e.g.
+    // after the indexer has been down for a while, or the node's retention
+    // is shorter than expected). Recognize that specific failure and clear
+    // the cursor so the *next* poll falls back to ledger-based resumption —
+    // the same path used when no cursor exists yet — instead of retrying
+    // the same dead cursor forever.
+    if (cursor && /cursor/i.test(String((err as Error)?.message ?? err))) {
+      console.error(`[indexer] cursor rejected by RPC, clearing it and resuming from the last indexed ledger:`, err)
+      deleteMeta(META_CURSOR)
+      return 0
+    }
+    throw err
+  }
 
   let processed = 0
   for (const raw of resp.events) {

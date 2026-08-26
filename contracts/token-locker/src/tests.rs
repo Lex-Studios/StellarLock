@@ -1,9 +1,9 @@
 #![cfg(test)]
 
 use soroban_sdk::{
-    testutils::{Address as _, Ledger},
+    testutils::{Address as _, Events, Ledger},
     token, vec, Address, BytesN, Env,
-    token, vec, Address, Env, IntoVal,
+    token, vec, Address, Env, IntoVal, Symbol, TryFromVal,
 };
 
 use crate::{ContractError, LockMetadata, TokenLocker, TokenLockerClient, Vesting};
@@ -875,6 +875,61 @@ fn create_split_lock_succeeds_and_allocates_correctly() {
     let lock1 = client.get_lock(&lock1_id).unwrap();
     assert_eq!(lock1.amount, 3_000_i128);
     assert_eq!(lock1.beneficiary, b2);
+}
+
+/// Regression test for #630: an indexer building state purely from events
+/// (not by reading contract storage) must be able to see each split-group
+/// child's own id, beneficiary and amount, not just the group's totals.
+#[test]
+fn create_split_lock_emits_a_lock_created_event_per_child() {
+    let (env, contract_id, token_id) = setup_env();
+    let client = TokenLockerClient::new(&env, &contract_id);
+    let creator = Address::generate(&env);
+    let b1 = Address::generate(&env);
+    let b2 = Address::generate(&env);
+    mint(&env, &token_id, &creator, 10_000);
+    let unlock_at = env.ledger().timestamp() + 100;
+
+    let group_id = client.create_split_lock(
+        &creator,
+        &token_id,
+        &10_000_i128,
+        &vec![&env, (b1.clone(), 7_000_u64), (b2.clone(), 3_000_u64)],
+        &unlock_at,
+        &None,
+    );
+    // Only events this contract published — excludes the token contract's
+    // own transfer/mint events from the same transaction.
+    let our_events: std::vec::Vec<_> = env
+        .events()
+        .all()
+        .iter()
+        .filter(|(addr, _, _)| *addr == contract_id)
+        .collect();
+
+    let group = client.get_split_group(&group_id).unwrap();
+    let lock1_id = group.lock_ids.get(1).unwrap();
+
+    let child_created: std::vec::Vec<_> = our_events
+        .iter()
+        .filter(|(_, topics, _)| {
+            Symbol::try_from_val(&env, &topics.get(0).unwrap()).unwrap()
+                == Symbol::new(&env, "lock_created")
+        })
+        .collect();
+    // One `lock_created` per child, plus the group-level `split_lock_created`
+    // summary.
+    assert_eq!(child_created.len(), 2);
+    assert_eq!(our_events.len(), 3);
+
+    let (_, lock1_topics, _) = child_created
+        .iter()
+        .find(|(_, topics, _)| u64::try_from_val(&env, &topics.get(1).unwrap()).unwrap() == lock1_id)
+        .expect("lock_created event for the second child");
+    let lock1_event_amount = i128::try_from_val(&env, &lock1_topics.get(4).unwrap()).unwrap();
+    let lock1_event_beneficiary = Address::try_from_val(&env, &lock1_topics.get(5).unwrap()).unwrap();
+    assert_eq!(lock1_event_amount, 3_000_i128);
+    assert_eq!(lock1_event_beneficiary, b2);
 }
 
 // ── Rate limiting (#203 / create_split_lock parity) ───────────────────────────
